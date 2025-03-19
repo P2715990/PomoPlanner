@@ -1,4 +1,4 @@
-package com.example.pomoplanner.ui.theme
+package com.example.pomoplanner.view.ui.theme
 
 import android.app.Activity
 import android.os.Build
