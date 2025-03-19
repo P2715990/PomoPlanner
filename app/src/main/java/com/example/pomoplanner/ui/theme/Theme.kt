@@ -1,6 +1,5 @@
-package com.example.pomoplanner.view.ui.theme
+package com.example.pomoplanner.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
