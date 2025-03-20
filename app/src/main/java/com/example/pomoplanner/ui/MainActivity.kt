@@ -37,81 +37,89 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.pomoplanner.ui.theme.PomoPlannerTheme
 
+// data class for items on the navigation bar
 data class TabBarItem(
     val title: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
-    val badgeAmount: Int? = null
+    var badgeAmount: Int? = null
 )
 
+// setup of individual navigation tabs
+val profileTab = TabBarItem(
+    title = "Profile",
+    selectedIcon = Icons.Filled.Person,
+    unselectedIcon = Icons.Outlined.Person
+)
+val tasksTab = TabBarItem(
+    title = "Tasks",
+    selectedIcon = Icons.AutoMirrored.Filled.List,
+    unselectedIcon = Icons.AutoMirrored.Outlined.List,
+    badgeAmount = 9
+)
+val pomodoroTab = TabBarItem(
+    title = "Pomodoro",
+    selectedIcon = Icons.Filled.Notifications,
+    unselectedIcon = Icons.Outlined.Notifications
+)
+val settingsTab = TabBarItem(
+    title = "Settings",
+    selectedIcon = Icons.Filled.Settings,
+    unselectedIcon = Icons.Outlined.Settings
+)
+
+// creating list of navigation tabs
+val tabBarItems = listOf(profileTab, tasksTab, pomodoroTab, settingsTab)
+
+// application entry point
 class MainActivity : ComponentActivity() {
-    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            // setup of individual navigation tabs
-            val profileTab = TabBarItem(
-                title = "Profile",
-                selectedIcon = Icons.Filled.Person,
-                unselectedIcon = Icons.Outlined.Person
-            )
-            val tasksTab = TabBarItem(
-                title = "Tasks",
-                selectedIcon = Icons.AutoMirrored.Filled.List,
-                unselectedIcon = Icons.AutoMirrored.Outlined.List,
-                badgeAmount = 9
-            )
-            val pomodoroTab = TabBarItem(
-                title = "Pomodoro",
-                selectedIcon = Icons.Filled.Notifications,
-                unselectedIcon = Icons.Outlined.Notifications
-            )
-            val settingsTab = TabBarItem(
-                title = "Settings",
-                selectedIcon = Icons.Filled.Settings,
-                unselectedIcon = Icons.Outlined.Settings
-            )
-
-            // creating list of navigation tabs
-            val tabBarItems = listOf(profileTab, tasksTab, pomodoroTab, settingsTab)
-
-            // creating navController
-            val navController = rememberNavController()
-
             PomoPlannerTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    Scaffold(
-                        bottomBar = { TabView(tabBarItems, navController) }
-                    ) {
-                        NavHost(navController = navController, startDestination = tasksTab.title) {
-                            composable(profileTab.title) {
-                                Text(profileTab.title)
-                            }
-                            composable(tasksTab.title) {
-                                Text(tasksTab.title)
-                            }
-                            composable(pomodoroTab.title) {
-                                Text(pomodoroTab.title)
-                            }
-                            composable(settingsTab.title) {
-                                Text(settingsTab.title)
-                            }
-                        }
-                    }
+                PomoPlannerApp()
+            }
+        }
+    }
+}
+
+// app navigation controller
+@Composable
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+private fun PomoPlannerApp() {
+    // creating navController
+    val navController = rememberNavController()
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Scaffold(
+            bottomBar = { TabView(tabBarItems, navController) }
+        ) {
+            NavHost(navController = navController, startDestination = tasksTab.title) {
+                composable(profileTab.title) {
+                    ProfileTab()
+                }
+                composable(tasksTab.title) {
+                    TasksTab()
+                }
+                composable(pomodoroTab.title) {
+                    PomodoroTab()
+                }
+                composable(settingsTab.title) {
+                    SettingsTab()
                 }
             }
         }
     }
 }
 
+// generates navigation bar and handles active navigation tab and switching
 @Composable
-fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
+private fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
     var selectedTabIndex by rememberSaveable {
-        mutableIntStateOf(0)
+        mutableIntStateOf(1)
     }
 
     NavigationBar {
@@ -136,8 +144,10 @@ fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
     }
 }
 
+// generates icons for navigation tab
+// selects which icon to use and displays notifications using a badge
 @Composable
-fun TabBarIconView(
+private fun TabBarIconView(
     isSelected: Boolean,
     selectedIcon: ImageVector,
     unselectedIcon: ImageVector,
@@ -156,8 +166,9 @@ fun TabBarIconView(
     }
 }
 
+// generates badges from int values for use when generating icons
 @Composable
-fun TabBarBadgeView(count: Int? = null) {
+private fun TabBarBadgeView(count: Int? = null) {
     if (count != null) {
         Badge {
             Text(count.toString())
