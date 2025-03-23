@@ -66,8 +66,8 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         db?.execSQL(sqlCreateTTasksStatement)
         db?.execSQL(sqlCreateTSettingStatement)
 
-        if (isTableEmpty(SettingTableEntry.SettingTableName)) {
-            assignDefaultSettings()
+        if (isTableEmpty(SettingTableEntry.SettingTableName, db)) {
+            assignDefaultSettings(db)
         }
     }
 
@@ -85,20 +85,18 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
 
     // function for checking if a table has any rows
 
-    fun isTableEmpty(tableName: String): Boolean {
+    fun isTableEmpty(tableName: String, db: SQLiteDatabase?): Boolean {
         var flag = false
-        val db: SQLiteDatabase = this.readableDatabase
         val sqlStatement = "SELECT EXISTS(SELECT 1 FROM $tableName)"
 
-        val cursor: Cursor = db.rawQuery(sqlStatement, null)
-        cursor.moveToFirst()
+        val cursor: Cursor? = db?.rawQuery(sqlStatement, null)
+        cursor?.moveToFirst()
 
-        if (cursor.getInt(0) != 1) {
+        if (cursor?.getInt(0) != 1) {
             flag = true
         }
 
-        cursor.close()
-        db.close()
+        cursor?.close()
         return flag
     }
 
@@ -286,14 +284,13 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
 
     // functions for TSetting
 
-    fun assignDefaultSettings() {
-        val db: SQLiteDatabase = this.writableDatabase
+    fun assignDefaultSettings(db: SQLiteDatabase?) {
         val cv = ContentValues()
 
         cv.put(SettingTableEntry.Column_SettingDescription, "Pomodoro Timer Duration (Minutes)")
         cv.put(SettingTableEntry.Column_SettingValue, "25")
 
-        db.insert(
+        db?.insert(
             SettingTableEntry.SettingTableName,
             null,
             cv
@@ -303,7 +300,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         cv.put(SettingTableEntry.Column_SettingDescription, "Short Break Timer Duration (Minutes)")
         cv.put(SettingTableEntry.Column_SettingValue, "5")
 
-        db.insert(
+        db?.insert(
             SettingTableEntry.SettingTableName,
             null,
             cv
@@ -313,7 +310,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         cv.put(SettingTableEntry.Column_SettingDescription, "Long Break Timer Duration (Minutes)")
         cv.put(SettingTableEntry.Column_SettingValue, "15")
 
-        db.insert(
+        db?.insert(
             SettingTableEntry.SettingTableName,
             null,
             cv
@@ -323,13 +320,11 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         cv.put(SettingTableEntry.Column_SettingDescription, "Long Break Interval")
         cv.put(SettingTableEntry.Column_SettingValue, "4")
 
-        db.insert(
+        db?.insert(
             SettingTableEntry.SettingTableName,
             null,
             cv
         )
-
-        db.close()
     }
 
     fun resetDefaultSettings() {
@@ -338,8 +333,8 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         db.execSQL("DROP TABLE IF EXISTS ${SettingTableEntry.SettingTableName}")
         db.execSQL(sqlCreateTSettingStatement)
 
+        assignDefaultSettings(db)
         db.close()
-        assignDefaultSettings()
     }
 
     fun updateSetting(settingDescription: String, settingValue: String): Boolean {
