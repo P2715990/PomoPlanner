@@ -1,9 +1,11 @@
 package com.example.pomoplanner.ui
 
-
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.pomoplanner.model.Task
 import com.example.pomoplanner.ui.theme.TaskGreen
@@ -46,8 +50,9 @@ fun TasksTab(
     Scaffold(
         topBar = {
             TaskTopBar(
-                onDateButtonClicked = { tasksTabViewModel.popupCalendar() },
-                onAddTaskButtonClicked = { tasksTabViewModel.popupAddTask() }
+                tasksTabViewModel.selectedDate,
+                onDateButtonClicked = { tasksTabViewModel.setShowCalendarPopup(true) },
+                onAddTaskButtonClicked = { tasksTabViewModel.setShowAddTaskPopup(true) }
             )
         }
     ) { innerPadding ->
@@ -59,7 +64,11 @@ fun TasksTab(
             onDeleteButtonClicked = { task ->
                 tasksTabViewModel.removeTask(task)
             },
-            padding = innerPadding
+            padding = innerPadding,
+            showCalendarPopup = tasksTabViewModel.showCalendarPopup,
+            onClickOutsideCalendar = { tasksTabViewModel.setShowCalendarPopup(false) },
+            showAddTaskPopup = tasksTabViewModel.showAddTaskPopup,
+            onClickOutsideAddTask = { tasksTabViewModel.setShowAddTaskPopup(false) }
         )
     }
 }
@@ -68,13 +77,14 @@ fun TasksTab(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TaskTopBar(
+    selectedDate: String,
     onDateButtonClicked: () -> Unit,
     onAddTaskButtonClicked: () -> Unit,
 ) {
     CenterAlignedTopAppBar(
         title = {
             Text(
-                "Date Placeholder",
+                selectedDate,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -104,6 +114,10 @@ fun TaskListView(
     onCheckedChange: (Task, Boolean) -> Unit,
     onDeleteButtonClicked: (Task) -> Unit,
     padding: PaddingValues,
+    showCalendarPopup: Boolean,
+    onClickOutsideCalendar: () -> Unit,
+    showAddTaskPopup: Boolean,
+    onClickOutsideAddTask: () -> Unit,
 ) {
     LazyColumn(
         modifier = Modifier.padding(padding),
@@ -168,4 +182,62 @@ fun TaskListView(
             }
         }
     }
+
+    PopupBox(
+        modifier = Modifier,
+        padding = padding,
+        showPopup = showCalendarPopup,
+        onClickOutside = onClickOutsideCalendar,
+        content = { CalendarView() }
+    )
+
+    PopupBox(
+        modifier = Modifier,
+        padding = padding,
+        showPopup = showAddTaskPopup,
+        onClickOutside = onClickOutsideAddTask,
+        content = { AddTaskView() }
+    )
+}
+
+@Composable
+fun PopupBox(
+    modifier: Modifier,
+    padding: PaddingValues,
+    showPopup: Boolean,
+    onClickOutside: () -> Unit,
+    content: @Composable() () -> Unit,
+) {
+    if (showPopup) {
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(color = MaterialTheme.colorScheme.background.copy(alpha = 0.6F))
+                .zIndex(10F),
+            contentAlignment = Alignment.Center
+        ) {
+            Popup(
+                alignment = Alignment.Center,
+                onDismissRequest = { onClickOutside() }
+            ) {
+                Box(
+                    modifier = modifier,
+                    contentAlignment = Alignment.Center
+                ) {
+                    content()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CalendarView() {
+    Text("TODO: Implement CalendarView")
+}
+
+@Composable
+fun AddTaskView() {
+    Text("TODO: Implement AddTaskView")
 }
