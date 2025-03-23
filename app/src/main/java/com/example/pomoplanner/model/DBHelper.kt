@@ -336,6 +336,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         val db: SQLiteDatabase = this.readableDatabase
 
         db.execSQL("DROP TABLE IF EXISTS ${SettingTableEntry.SettingTableName}")
+        db.execSQL(sqlCreateTSettingStatement)
 
         db.close()
         assignDefaultSettings()
