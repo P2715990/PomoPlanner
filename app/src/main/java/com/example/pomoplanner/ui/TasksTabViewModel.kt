@@ -4,7 +4,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
 import com.example.pomoplanner.model.Task
 
-class TasksTabViewModel: ViewModel() {
+class TasksTabViewModel : ViewModel() {
     val task1 = Task(
         1,
         1,
@@ -58,13 +58,33 @@ class TasksTabViewModel: ViewModel() {
     val tasks: List<Task>
         get() = _tasks
 
-    fun changeTaskIsCompleted (task: Task, isCompleted: Boolean) {
+    fun changeTaskIsCompleted(task: Task, isCompleted: Boolean) {
         _tasks.find { it.taskId == task.taskId }?.let { task ->
             task.taskIsCompleted = isCompleted
         }
+        updateBadge()
     }
 
-    fun removeTask (task: Task) {
+    fun removeTask(task: Task) {
         _tasks.remove(task)
+        updateBadge()
     }
+
+    fun updateBadge() {
+        val remainingTasks: List<Task> = _tasks.filter { it.taskIsCompleted == false }
+        if (remainingTasks.isEmpty()) {
+            tasksTab.badgeAmount = null
+        } else {
+            tasksTab.badgeAmount = remainingTasks.size
+        }
+    }
+
+    fun popupAddTask() {
+
+    }
+
+    fun popupCalendar() {
+
+    }
+
 }

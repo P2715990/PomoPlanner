@@ -1,11 +1,11 @@
 package com.example.pomoplanner.ui
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.List
@@ -27,9 +27,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -37,13 +39,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.pomoplanner.ui.theme.PomoPlannerTheme
 
-// data class for items on the navigation bar
-data class TabBarItem(
+// class for items on the navigation bar
+class TabBarItem(
     val title: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
-    var badgeAmount: Int? = null
-)
+    initialBadgeAmount: Int? = null,
+) {
+    var badgeAmount by mutableStateOf(initialBadgeAmount)
+}
 
 // setup of individual navigation tabs
 val profileTab = TabBarItem(
@@ -54,8 +58,7 @@ val profileTab = TabBarItem(
 val tasksTab = TabBarItem(
     title = "Tasks",
     selectedIcon = Icons.AutoMirrored.Filled.List,
-    unselectedIcon = Icons.AutoMirrored.Outlined.List,
-    badgeAmount = 9
+    unselectedIcon = Icons.AutoMirrored.Outlined.List
 )
 val pomodoroTab = TabBarItem(
     title = "Pomodoro",
@@ -86,7 +89,6 @@ class MainActivity : ComponentActivity() {
 
 // app navigation controller
 @Composable
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 private fun PomoPlannerApp() {
     // creating navController
     val navController = rememberNavController()
@@ -96,8 +98,8 @@ private fun PomoPlannerApp() {
     ) {
         Scaffold(
             bottomBar = { TabView(tabBarItems, navController) }
-        ) {
-            NavHost(navController = navController, startDestination = tasksTab.title) {
+        ) { innerPadding ->
+            NavHost(modifier = Modifier.padding(innerPadding), navController = navController, startDestination = tasksTab.title) {
                 composable(profileTab.title) {
                     ProfileTab()
                 }
@@ -152,7 +154,7 @@ private fun TabBarIconView(
     selectedIcon: ImageVector,
     unselectedIcon: ImageVector,
     title: String,
-    badgeAmount: Int? = null
+    badgeAmount: Int? = null,
 ) {
     BadgedBox(badge = { TabBarBadgeView(badgeAmount) }) {
         Icon(
@@ -173,5 +175,7 @@ private fun TabBarBadgeView(count: Int? = null) {
         Badge {
             Text(count.toString())
         }
+    } else {
+        Badge(modifier = Modifier.alpha(0f))
     }
 }
