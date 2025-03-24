@@ -53,7 +53,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
                 TaskTableEntry.Column_TaskDate + " TEXT NOT NULL, " +
                 TaskTableEntry.Column_TaskPriority + " TEXT NOT NULL DEFAULT 'Low', " +
                 TaskTableEntry.Column_TaskIsCompleted + " INTEGER NOT NULL DEFAULT 0, " +
-                TaskTableEntry.Column_TaskDetails + "TEXT NOT NULL, " +
+                TaskTableEntry.Column_TaskDetails + " TEXT NOT NULL, " +
                 "PRIMARY KEY(" + TaskTableEntry.Column_TaskId + " AUTOINCREMENT))"
 
     val sqlCreateTSettingStatement: String =
