@@ -1,65 +1,22 @@
 package com.example.pomoplanner.ui
 
+import android.app.Application
+import android.content.Context
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import com.example.pomoplanner.model.DBHelper
 import com.example.pomoplanner.model.Task
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class TasksTabViewModel : ViewModel() {
-    val task1 = Task(
-        1,
-        1,
-        "23/03/2025",
-        "Low",
-        false,
-        "Wash Dishes"
-    )
-    val task2 = Task(
-        2,
-        1,
-        "23/03/2025",
-        "High",
-        false,
-        "Pay Taxes"
-    )
-    val task3 = Task(
-        3,
-        1,
-        "23/03/2025",
-        "Moderate",
-        false,
-        "Take Out Bins"
-    )
-    val task4 = Task(
-        4,
-        1,
-        "23/03/2025",
-        "Low",
-        true,
-        "Call Sister"
-    )
-    val task5 = Task(
-        5,
-        1,
-        "23/03/2025",
-        "Low",
-        false,
-        "Long rant to test big task descriptions. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-    )
-    val task6 = Task(
-        6,
-        1,
-        "23/03/2025",
-        "Moderate",
-        false,
-        "Eat Dinner"
-    )
+class TasksTabViewModel(application: Application) : AndroidViewModel(application) {
+    private val context: Context
+        get() = getApplication<Application>().applicationContext
+    val dbHelper: DBHelper = DBHelper(context)
 
-    private val _tasks = mutableStateListOf(task1, task2, task3, task4, task5, task6)
+    private var _tasks by mutableStateOf<List<Task>>(listOf<Task>())
     val tasks: List<Task>
         get() = _tasks
 
@@ -80,20 +37,27 @@ class TasksTabViewModel : ViewModel() {
         get() = _showAddTaskPopup
 
     fun addTask(task: Task) {
-        _tasks.add(task)
-        updateBadge()
+        dbHelper.addTask(task)
+        getCurrentTasks(1, selectedDate)
         setShowAddTaskPopup(false)
     }
 
     fun changeTaskIsCompleted(task: Task, isCompleted: Boolean) {
         _tasks.find { it.taskId == task.taskId }?.let { task ->
             task.taskIsCompleted = isCompleted
+            dbHelper.updateTask(task)
         }
         updateBadge()
     }
 
-    fun removeTask(task: Task) {
-        _tasks.remove(task)
+    fun deleteTask(task: Task) {
+        dbHelper.deleteTask(task)
+        getCurrentTasks(1 /* TODO: IMPLEMENT PROFILE SYSTEM */, selectedDate)
+        updateBadge()
+    }
+
+    fun getCurrentTasks(selectedProfile: Int, selectedDate: String) {
+        _tasks = dbHelper.getTasks(selectedProfile, selectedDate)
         updateBadge()
     }
 
@@ -108,6 +72,7 @@ class TasksTabViewModel : ViewModel() {
 
     fun updateDate(date: String) {
         _selectedDate = date
+        getCurrentTasks(1 /* TODO: IMPLEMENT PROFILE SYSTEM */, selectedDate)
     }
 
     fun setShowCalendarPopup(show: Boolean) {
