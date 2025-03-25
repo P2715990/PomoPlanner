@@ -172,10 +172,11 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         }
     }
 
-    fun getTasks(profileId: Int): List<Task> {
+    fun getTasks(profileId: Int, date: String): List<Task> {
         val db: SQLiteDatabase = this.readableDatabase
         val sqlStatement =
-            "SELECT * FROM ${TaskTableEntry.TaskTableName} WHERE ${ProfileTableEntry.Column_ProfileId} LIKE '$profileId'"
+            "SELECT * FROM ${TaskTableEntry.TaskTableName} WHERE ${ProfileTableEntry.Column_ProfileId} LIKE '$profileId' AND  " +
+                    "${TaskTableEntry.Column_TaskDate} LIKE '$date'"
 
         val cursor: Cursor = db.rawQuery(sqlStatement, null)
         val taskItems = mutableListOf<Task>()

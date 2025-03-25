@@ -65,6 +65,7 @@ import com.example.pomoplanner.ui.theme.TaskRed
 fun TasksTab(
     tasksTabViewModel: TasksTabViewModel = viewModel(),
 ) {
+    tasksTabViewModel.getCurrentTasks(1 /* TODO: IMPLEMENT PROFILE SYSTEM */, tasksTabViewModel.selectedDate)
     tasksTabViewModel.updateBadge()
 
     Scaffold(
@@ -83,7 +84,7 @@ fun TasksTab(
                 tasksTabViewModel.changeTaskIsCompleted(task, isCompleted)
             },
             onDeleteButtonClicked = { task ->
-                tasksTabViewModel.removeTask(task)
+                tasksTabViewModel.deleteTask(task)
             },
             padding = innerPadding,
         )
@@ -112,7 +113,8 @@ fun TasksTab(
                 { task ->
                     tasksTabViewModel.addTask(task)
                 },
-                tasksTabViewModel.selectedDate
+                tasksTabViewModel.selectedDate,
+                1 /* TODO: IMPLEMENT PROFILE SYSTEM */
             )
         }
     )
@@ -270,6 +272,7 @@ fun CalendarView() {
 fun AddTaskView(
     onAddButtonClicked: (Task) -> Unit,
     selectedDate: String,
+    selectedProfile: Int,
 ) {
     var taskDetailsText by remember { mutableStateOf("") }
     var priorityExpanded by remember { mutableStateOf(false) }
@@ -357,7 +360,7 @@ fun AddTaskView(
                     onAddButtonClicked(
                         Task(
                             -1,
-                            1,
+                            selectedProfile,
                             selectedDate,
                             priorityState.text.toString(),
                             false,
