@@ -79,6 +79,12 @@ class TasksTabViewModel : ViewModel() {
     val showAddTaskPopup: Boolean
         get() = _showAddTaskPopup
 
+    fun addTask(task: Task) {
+        _tasks.add(task)
+        updateBadge()
+        setShowAddTaskPopup(false)
+    }
+
     fun changeTaskIsCompleted(task: Task, isCompleted: Boolean) {
         _tasks.find { it.taskId == task.taskId }?.let { task ->
             task.taskIsCompleted = isCompleted
