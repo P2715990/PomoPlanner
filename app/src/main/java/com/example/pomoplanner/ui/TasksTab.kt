@@ -2,14 +2,17 @@ package com.example.pomoplanner.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -34,6 +37,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -48,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -82,36 +87,36 @@ fun TasksTab(
             },
             padding = innerPadding,
         )
-        val calendarPopupModifier: Modifier = Modifier
-            .padding(24.dp)
-            .fillMaxSize()
-            .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp))
 
-        val addTaskPopupModifier: Modifier = Modifier
-            .padding(24.dp)
-            .fillMaxSize()
-            .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp))
-
-        CustomPopupHelper(
-            modifier = calendarPopupModifier,
-            padding = innerPadding,
-            showPopup = tasksTabViewModel.showCalendarPopup,
-            onClickOutside = { tasksTabViewModel.setShowCalendarPopup(false) },
-            content = { CalendarView() }
-        )
-
-        CustomPopupHelper(
-            modifier = addTaskPopupModifier,
-            padding = innerPadding,
-            showPopup = tasksTabViewModel.showAddTaskPopup,
-            onClickOutside = { tasksTabViewModel.setShowAddTaskPopup(false) },
-            content = { AddTaskView() }
-        )
     }
-}
 
+    val popupModifier: Modifier = Modifier
+        .padding(24.dp)
+        .fillMaxWidth()
+        .clip(RoundedCornerShape(24.dp))
+        .background(MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp))
+
+    CustomPopupHelper(
+        modifier = popupModifier,
+        showPopup = tasksTabViewModel.showCalendarPopup,
+        onClickOutside = { tasksTabViewModel.setShowCalendarPopup(false) },
+        content = { CalendarView() }
+    )
+
+    CustomPopupHelper(
+        modifier = popupModifier,
+        showPopup = tasksTabViewModel.showAddTaskPopup,
+        onClickOutside = { tasksTabViewModel.setShowAddTaskPopup(false) },
+        content = {
+            AddTaskView(
+                { task ->
+                    tasksTabViewModel.addTask(task)
+                },
+                tasksTabViewModel.selectedDate
+            )
+        }
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -224,23 +229,29 @@ fun TaskListView(
 @Composable
 fun CustomPopupHelper(
     modifier: Modifier,
-    padding: PaddingValues,
     showPopup: Boolean,
     onClickOutside: () -> Unit,
     content: @Composable() () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
+
     if (showPopup) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(color = MaterialTheme.colorScheme.background.copy(alpha = 0.6F))
-                .clickable { onClickOutside() },
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null
+                ) { onClickOutside() },
             contentAlignment = Alignment.Center
         ) {
             Box(
-                modifier = Modifier
-                    .padding(padding)
-                    .then(modifier),
+                modifier = modifier
+                    .clickable(
+                        interactionSource = interactionSource,
+                        indication = null
+                    ) { },
                 contentAlignment = Alignment.Center
             ) {
                 content()
@@ -256,7 +267,10 @@ fun CalendarView() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTaskView() {
+fun AddTaskView(
+    onAddButtonClicked: (Task) -> Unit,
+    selectedDate: String,
+) {
     var taskDetailsText by remember { mutableStateOf("") }
     var priorityExpanded by remember { mutableStateOf(false) }
     val priorityOptions: List<String> = listOf("Low", "Moderate", "High")
@@ -264,23 +278,38 @@ fun AddTaskView() {
 
     Column(
         modifier = Modifier
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            OutlinedTextField(
-                value = taskDetailsText,
-                onValueChange = { taskDetailsText = it },
-                label = { Text("Task Details") }
-            )
-        }
+        Text(
+            text = "Add New Task",
+            color = MaterialTheme.colorScheme.onBackground
+        )
 
         Row(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
+            OutlinedTextField(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                value = taskDetailsText,
+                onValueChange = { taskDetailsText = it },
+                label = { Text("Task Details") },
+                colors = ExposedDropdownMenuDefaults.textFieldColors()
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .height(intrinsicSize = IntrinsicSize.Max),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
             ExposedDropdownMenuBox(
+                modifier = Modifier
+                    .weight(3F)
+                    .padding(end = 8.dp)
+                    .fillMaxSize(),
                 expanded = priorityExpanded,
                 onExpandedChange = { newValue ->
                     priorityExpanded = newValue
@@ -289,7 +318,7 @@ fun AddTaskView() {
                 OutlinedTextField(
                     modifier = Modifier
                         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                        .fillMaxWidth(),
+                        .fillMaxSize(),
                     state = priorityState,
                     readOnly = true,
                     lineLimits = TextFieldLineLimits.SingleLine,
@@ -313,12 +342,37 @@ fun AddTaskView() {
                     }
                 }
             }
-        }
 
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+            OutlinedButton(
+                modifier = Modifier
+                    .weight(2F)
+                    .padding(
+                        start = 8.dp,
+                        top = 8.dp
+                    )
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+                onClick = {
+                    onAddButtonClicked(
+                        Task(
+                            -1,
+                            1,
+                            selectedDate,
+                            priorityState.text.toString(),
+                            false,
+                            taskDetailsText
+                        )
 
+                    )
+                },
+                shape = RectangleShape
+            ) {
+                Text(
+                    text = "Add Task",
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
         }
     }
 }
