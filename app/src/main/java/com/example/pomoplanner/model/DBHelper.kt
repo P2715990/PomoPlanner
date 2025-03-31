@@ -29,6 +29,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         val Column_TaskDate = "TaskDate"
         val Column_TaskPriority = "TaskPriority"
         val Column_TaskIsCompleted = "TaskIsCompleted"
+        val Column_TaskCategory = "TaskCategory"
         val Column_TaskDetails = "TaskDetails"
     }
 
@@ -53,6 +54,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
                 TaskTableEntry.Column_TaskDate + " TEXT NOT NULL, " +
                 TaskTableEntry.Column_TaskPriority + " TEXT NOT NULL DEFAULT 'Low', " +
                 TaskTableEntry.Column_TaskIsCompleted + " INTEGER NOT NULL DEFAULT 0, " +
+                TaskTableEntry.Column_TaskCategory + " TEXT, " +
                 TaskTableEntry.Column_TaskDetails + " TEXT NOT NULL, " +
                 "PRIMARY KEY(" + TaskTableEntry.Column_TaskId + " AUTOINCREMENT))"
 
@@ -110,6 +112,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         cv.put(TaskTableEntry.Column_TaskDate, task.taskDate)
         cv.put(TaskTableEntry.Column_TaskPriority, task.taskPriority)
         cv.put(TaskTableEntry.Column_TaskIsCompleted, (if (task.taskIsCompleted) 1 else 0))
+        cv.put(TaskTableEntry.Column_TaskCategory, (if (task.taskCategory == "") null else task.taskCategory))
         cv.put(TaskTableEntry.Column_TaskDetails, task.taskDetails)
 
         val success = db.insert(TaskTableEntry.TaskTableName, null, cv)
@@ -125,6 +128,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         cv.put(TaskTableEntry.Column_TaskDate, task.taskDate)
         cv.put(TaskTableEntry.Column_TaskPriority, task.taskPriority)
         cv.put(TaskTableEntry.Column_TaskIsCompleted, (if (task.taskIsCompleted) 1 else 0))
+        cv.put(TaskTableEntry.Column_TaskCategory, (if (task.taskCategory == "") null else task.taskCategory))
         cv.put(TaskTableEntry.Column_TaskDetails, task.taskDetails)
 
         val success = db.update(
@@ -160,7 +164,8 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
                 cursor.getString(2),
                 cursor.getString(3),
                 cursor.getInt(4) == 1,
-                cursor.getString(5)
+                cursor.getString(5),
+                cursor.getString(6)
             )
             db.close()
             cursor.close()
@@ -168,7 +173,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         } else {
             db.close()
             cursor.close()
-            return Task(-1, -1, "", "", false, "")
+            return Task(-1, -1, "", "", false, null, "")
         }
     }
 
@@ -188,7 +193,8 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
                     cursor.getString(2),
                     cursor.getString(3),
                     cursor.getInt(4) == 1,
-                    cursor.getString(5)
+                    cursor.getString(5),
+                    cursor.getString(6)
                 )
                 taskItems += taskItem
             } while (cursor.moveToNext())

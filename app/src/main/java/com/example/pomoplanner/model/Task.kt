@@ -10,6 +10,7 @@ class Task (
     val taskDate: String,
     val taskPriority: String,
     initialTaskIsCompleted: Boolean,
+    val taskCategory: String?,
     val taskDetails: String
 ) {
     var taskIsCompleted by mutableStateOf(initialTaskIsCompleted)
