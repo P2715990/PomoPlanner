@@ -177,11 +177,15 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         }
     }
 
-    fun getTasks(profileId: Int, date: String): List<Task> {
+    fun getTasks(profileId: Int, date: String, category: String): List<Task> {
         val db: SQLiteDatabase = this.readableDatabase
-        val sqlStatement =
+        var sqlStatement =
             "SELECT * FROM ${TaskTableEntry.TaskTableName} WHERE ${ProfileTableEntry.Column_ProfileId} LIKE '$profileId' AND  " +
                     "${TaskTableEntry.Column_TaskDate} LIKE '$date'"
+        if (category != "") {
+            sqlStatement += " AND ${
+                TaskTableEntry.Column_TaskCategory} LIKE '$category'"
+        }
 
         val cursor: Cursor = db.rawQuery(sqlStatement, null)
         val taskItems = mutableListOf<Task>()
@@ -202,6 +206,27 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         db.close()
         cursor.close()
         return taskItems
+    }
+
+    fun getTaskCategories(profileId: Int, date: String): List<String> {
+        val db: SQLiteDatabase = this.readableDatabase
+        val sqlStatement =
+            "SELECT * FROM ${TaskTableEntry.TaskTableName} WHERE ${ProfileTableEntry.Column_ProfileId} LIKE '$profileId' AND  " +
+                    "${TaskTableEntry.Column_TaskDate} LIKE '$date' AND " +
+                    "${TaskTableEntry.Column_TaskCategory} IS NOT NULL"
+
+        val cursor: Cursor = db.rawQuery(sqlStatement, null)
+        val taskCategories = mutableListOf<String>()
+        if (cursor.moveToFirst()) {
+            do {
+                val category = cursor.getString(5)
+                taskCategories += category
+            } while (cursor.moveToNext())
+        }
+
+        db.close()
+        cursor.close()
+        return taskCategories.distinct()
     }
 
     // functions for TProfile
