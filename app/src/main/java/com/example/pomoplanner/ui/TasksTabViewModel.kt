@@ -40,6 +40,14 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
     val addTaskErrorMessage: String
         get() = _addTaskErrorMessage
 
+    private var _categoryOptions by mutableStateOf<List<String>>(listOf<String>("<Unfiltered>"))
+    val categoryOptions: List<String>
+        get() = _categoryOptions
+
+    private var _filteredCategory by mutableStateOf("")
+    val filteredCategory: String
+        get() = _filteredCategory
+
     fun addTask(task: Task) {
         _addTaskErrorMessage = ""
         if (task.taskDetails == "") {
@@ -55,6 +63,13 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
                     _addTaskErrorMessage += "\n\n"
                 }
                 _addTaskErrorMessage += "Task Category Shouldn't Be Longer Than 50 Characters"
+            }
+
+            if (task.taskCategory == "<Unfiltered>") {
+                if (addTaskErrorMessage != "") {
+                    _addTaskErrorMessage += "\n\n"
+                }
+                _addTaskErrorMessage += "Task Category Cannot Be <Unfiltered>"
             }
         }
         if (addTaskErrorMessage == "") {
@@ -79,7 +94,7 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun getCurrentTasks(selectedProfile: Int, selectedDate: String) {
-        _tasks = dbHelper.getTasks(selectedProfile, selectedDate)
+        _tasks = dbHelper.getTasks(selectedProfile, selectedDate, filteredCategory)
         updateBadge()
     }
 
@@ -95,6 +110,19 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
     fun updateDate(date: String) {
         _selectedDate = date
         getCurrentTasks(1 /* TODO: IMPLEMENT PROFILE SYSTEM */, selectedDate)
+    }
+
+    fun getCategoryOptions(selectedProfile: Int, selectedDate: String) {
+        val taskCategories: List<String> = dbHelper.getTaskCategories(selectedProfile, selectedDate)
+        _categoryOptions = listOf("<Unfiltered>") + taskCategories
+    }
+
+    fun updateFilteredCategory(category: String) {
+        _filteredCategory = if(category == "<Unfiltered>") {
+            ""
+        } else {
+            category
+        }
     }
 
     fun setShowCalendarPopup(show: Boolean) {

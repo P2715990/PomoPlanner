@@ -74,6 +74,10 @@ fun TasksTab(
         1 /* TODO: IMPLEMENT PROFILE SYSTEM */,
         tasksTabViewModel.selectedDate
     )
+    tasksTabViewModel.getCategoryOptions(
+        1 /* TODO: IMPLEMENT PROFILE SYSTEM */,
+        tasksTabViewModel.selectedDate
+    )
     tasksTabViewModel.updateBadge()
 
     Scaffold(
@@ -85,17 +89,30 @@ fun TasksTab(
                 onAddTaskButtonClicked = { tasksTabViewModel.setShowAddTaskPopup(true) }
             )
         }
-    ) { innerPadding ->
-        TaskListView(
-            tasks = tasksTabViewModel.tasks,
-            onCheckedChange = { task, isCompleted ->
-                tasksTabViewModel.changeTaskIsCompleted(task, isCompleted)
-            },
-            onDeleteButtonClicked = { task ->
-                tasksTabViewModel.deleteTask(task)
-            },
-            padding = innerPadding,
-        )
+    ) { padding ->
+        Scaffold(
+            modifier = Modifier.padding(padding),
+            contentWindowInsets = WindowInsets(0.dp),
+            topBar = {
+                CategoryFilterTopBar(
+                    onCategorySelected = { category ->
+                        tasksTabViewModel.updateFilteredCategory(category)
+                    },
+                    categoryOptions = tasksTabViewModel.categoryOptions
+                )
+            }
+        ) { innerPadding ->
+            TaskListView(
+                tasks = tasksTabViewModel.tasks,
+                onCheckedChange = { task, isCompleted ->
+                    tasksTabViewModel.changeTaskIsCompleted(task, isCompleted)
+                },
+                onDeleteButtonClicked = { task ->
+                    tasksTabViewModel.deleteTask(task)
+                },
+                padding = innerPadding,
+            )
+        }
 
     }
 
@@ -163,6 +180,60 @@ fun TaskTopBar(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CategoryFilterTopBar(
+    onCategorySelected: (String) -> Unit,
+    categoryOptions: List<String>,
+) {
+    var categoryExpanded by remember { mutableStateOf(false) }
+    var categoryState = rememberTextFieldState(categoryOptions[0])
+
+    Column(
+
+    ) {
+        ExposedDropdownMenuBox(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            expanded = categoryExpanded,
+            onExpandedChange = { newValue ->
+                categoryExpanded = newValue
+            }
+        ) {
+            OutlinedTextField(
+                modifier = Modifier
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
+                state = categoryState,
+                readOnly = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                label = { Text("Category Filter") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                colors = ExposedDropdownMenuDefaults.textFieldColors()
+            )
+            ExposedDropdownMenu(
+                expanded = categoryExpanded,
+                onDismissRequest = { categoryExpanded = false }
+            ) {
+                categoryOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            categoryState.setTextAndPlaceCursorAtEnd(option)
+                            categoryExpanded = false
+                            onCategorySelected(option)
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                    )
+                }
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(top = 8.dp, bottom = 8.dp))
+    }
+}
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TaskListView(
@@ -171,6 +242,7 @@ fun TaskListView(
     onDeleteButtonClicked: (Task) -> Unit,
     padding: PaddingValues,
 ) {
+
     LazyColumn(
         modifier = Modifier
             .padding(padding)
@@ -294,7 +366,7 @@ fun AddTaskView(
     onAddButtonClicked: (Task) -> Unit,
     selectedDate: String,
     selectedProfile: Int,
-    addTaskErrorMessage: String
+    addTaskErrorMessage: String,
 ) {
     var taskDetailsText by remember { mutableStateOf("") }
     var taskCategoryText by remember { mutableStateOf("") }
