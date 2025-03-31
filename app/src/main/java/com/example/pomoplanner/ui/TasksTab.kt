@@ -16,10 +16,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
@@ -30,6 +32,7 @@ import androidx.compose.material3.CheckboxColors
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -53,6 +56,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -65,7 +70,10 @@ import com.example.pomoplanner.ui.theme.TaskRed
 fun TasksTab(
     tasksTabViewModel: TasksTabViewModel = viewModel(),
 ) {
-    tasksTabViewModel.getCurrentTasks(1 /* TODO: IMPLEMENT PROFILE SYSTEM */, tasksTabViewModel.selectedDate)
+    tasksTabViewModel.getCurrentTasks(
+        1 /* TODO: IMPLEMENT PROFILE SYSTEM */,
+        tasksTabViewModel.selectedDate
+    )
     tasksTabViewModel.updateBadge()
 
     Scaffold(
@@ -114,7 +122,8 @@ fun TasksTab(
                     tasksTabViewModel.addTask(task)
                 },
                 tasksTabViewModel.selectedDate,
-                1 /* TODO: IMPLEMENT PROFILE SYSTEM */
+                1 /* TODO: IMPLEMENT PROFILE SYSTEM */,
+                tasksTabViewModel.addTaskErrorMessage
             )
         }
     )
@@ -154,6 +163,7 @@ fun TaskTopBar(
     )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun TaskListView(
     tasks: List<Task>,
@@ -208,10 +218,21 @@ fun TaskListView(
                             onCheckedChange = { onCheckedChange(task, !task.taskIsCompleted) }
                         )
 
-                        Text(
-                            modifier = Modifier.weight(6.0f),
-                            text = task.taskDetails
-                        )
+                        Column(
+                            modifier = Modifier.weight(6.0f)
+                        ) {
+                            if (task.taskCategory != null) {
+                                Text(
+                                    style = MaterialTheme.typography.labelSmallEmphasized,
+                                    fontStyle = FontStyle.Italic,
+                                    text = task.taskCategory
+                                )
+                            }
+
+                            Text(
+                                text = task.taskDetails
+                            )
+                        }
 
                         IconButton(onClick = { onDeleteButtonClicked(task) }
                         ) {
@@ -273,15 +294,18 @@ fun AddTaskView(
     onAddButtonClicked: (Task) -> Unit,
     selectedDate: String,
     selectedProfile: Int,
+    addTaskErrorMessage: String
 ) {
     var taskDetailsText by remember { mutableStateOf("") }
+    var taskCategoryText by remember { mutableStateOf("") }
     var priorityExpanded by remember { mutableStateOf(false) }
     val priorityOptions: List<String> = listOf("Low", "Moderate", "High")
     var priorityState = rememberTextFieldState(priorityOptions[0])
 
     Column(
         modifier = Modifier
-            .padding(24.dp),
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -290,18 +314,23 @@ fun AddTaskView(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Row(
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            OutlinedTextField(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                value = taskDetailsText,
-                onValueChange = { taskDetailsText = it },
-                label = { Text("Task Details") },
-                colors = ExposedDropdownMenuDefaults.textFieldColors()
-            )
-        }
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth(),
+            value = taskDetailsText,
+            onValueChange = { taskDetailsText = it },
+            label = { Text("Task Details") },
+            colors = ExposedDropdownMenuDefaults.textFieldColors()
+        )
+
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth(),
+            value = taskCategoryText,
+            onValueChange = { taskCategoryText = it },
+            label = { Text("Task Category") },
+            colors = ExposedDropdownMenuDefaults.textFieldColors()
+        )
 
         Row(
             modifier = Modifier
@@ -364,6 +393,7 @@ fun AddTaskView(
                             selectedDate,
                             priorityState.text.toString(),
                             false,
+                            taskCategoryText,
                             taskDetailsText
                         )
 
@@ -376,6 +406,14 @@ fun AddTaskView(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             }
+        }
+
+        if (addTaskErrorMessage != "") {
+            Text(
+                text = addTaskErrorMessage,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.error
+            )
         }
     }
 }

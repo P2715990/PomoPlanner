@@ -36,10 +36,32 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
     val showAddTaskPopup: Boolean
         get() = _showAddTaskPopup
 
+    private var _addTaskErrorMessage by mutableStateOf("")
+    val addTaskErrorMessage: String
+        get() = _addTaskErrorMessage
+
     fun addTask(task: Task) {
-        dbHelper.addTask(task)
-        getCurrentTasks(1, selectedDate)
-        setShowAddTaskPopup(false)
+        _addTaskErrorMessage = ""
+        if (task.taskDetails == "") {
+            _addTaskErrorMessage += "Please Enter Task Details"
+        }
+        if (task.taskDetails.length > 250) {
+            _addTaskErrorMessage += "Task Details Shouldn't Be Longer Than 250 Characters"
+        }
+
+        if (task.taskCategory != null) {
+            if (task.taskCategory.length > 50) {
+                if (addTaskErrorMessage != "") {
+                    _addTaskErrorMessage += "\n\n"
+                }
+                _addTaskErrorMessage += "Task Category Shouldn't Be Longer Than 50 Characters"
+            }
+        }
+        if (addTaskErrorMessage == "") {
+            dbHelper.addTask(task)
+            getCurrentTasks(1, selectedDate)
+            setShowAddTaskPopup(false)
+        }
     }
 
     fun changeTaskIsCompleted(task: Task, isCompleted: Boolean) {
@@ -91,8 +113,10 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
             _showAddTaskPopup = false
         } else if (showCalendarPopup) {
             setShowCalendarPopup(false)
+            _addTaskErrorMessage = ""
             _showAddTaskPopup = true
         } else {
+            _addTaskErrorMessage = ""
             _showAddTaskPopup = true
         }
     }
