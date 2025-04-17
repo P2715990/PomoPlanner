@@ -1,10 +1,7 @@
 package com.example.pomoplanner.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -50,12 +47,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,15 +71,9 @@ import com.example.pomoplanner.ui.theme.TaskRed
 fun TasksTab(
     tasksTabViewModel: TasksTabViewModel = viewModel(),
 ) {
-    var firstComposition = rememberSaveable { true }
-
-    if (firstComposition) {
-        tasksTabViewModel.getCurrentTasks()
-        tasksTabViewModel.getCategoryOptions()
-        tasksTabViewModel.updateBadge()
-
-        firstComposition = false
-    }
+    tasksTabViewModel.getCurrentTasks()
+    tasksTabViewModel.getCategoryOptions()
+    tasksTabViewModel.updateBadge()
 
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
@@ -273,43 +262,6 @@ fun TaskListView(
                 if (index < tasks.lastIndex) {
                     HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
                 }
-            }
-        }
-    }
-}
-
-@Composable
-fun CustomPopupHelper(
-    showPopup: Boolean,
-    onClickOutside: () -> Unit,
-    content: @Composable() () -> Unit,
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-
-    if (showPopup) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = MaterialTheme.colorScheme.background.copy(alpha = 0.6F))
-                .clickable(
-                    interactionSource = interactionSource,
-                    indication = null
-                ) { onClickOutside() },
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .padding(24.dp)
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp))
-                    .clickable(
-                        interactionSource = interactionSource,
-                        indication = null
-                    ) { },
-                contentAlignment = Alignment.Center
-            ) {
-                content()
             }
         }
     }

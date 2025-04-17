@@ -21,6 +21,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         val Column_ProfileId = "ProfileId"
         val Column_ProfileUsername = "ProfileUsername"
         val Column_ProfilePassword = "ProfilePassword"
+        val Column_ProfileIsSelected = "ProfileSelected"
     }
 
     object TaskTableEntry {
@@ -45,6 +46,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
                 ProfileTableEntry.Column_ProfileId + " INTEGER NOT NULL UNIQUE, " +
                 ProfileTableEntry.Column_ProfileUsername + " TEXT NOT NULL UNIQUE, " +
                 ProfileTableEntry.Column_ProfilePassword + " TEXT, " +
+                ProfileTableEntry.Column_ProfileIsSelected + " INTEGER NOT NULL DEFAULT 0, " +
                 "PRIMARY KEY(" + ProfileTableEntry.Column_ProfileId + " AUTOINCREMENT))"
 
     val sqlCreateTTasksStatement: String =
@@ -257,6 +259,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
 
         cv.put(ProfileTableEntry.Column_ProfileUsername, profile.profileUsername)
         cv.put(ProfileTableEntry.Column_ProfilePassword, profile.profilePassword)
+        cv.put(ProfileTableEntry.Column_ProfileIsSelected, if (profile.profileIsSelected) 1 else 0)
 
         val success = db.update(
             ProfileTableEntry.ProfileTableName,
@@ -288,7 +291,8 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
             val result = Profile(
                 cursor.getInt(0),
                 cursor.getString(1),
-                cursor.getString(2)
+                cursor.getString(2),
+                cursor.getInt(3) == 1,
             )
             db.close()
             cursor.close()
@@ -296,7 +300,54 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         } else {
             db.close()
             cursor.close()
-            return Profile(-1, "", "")
+            return Profile(-1, "", "", false)
+        }
+    }
+
+    fun getProfile(profileUsername: String): Profile {
+        val db: SQLiteDatabase = this.readableDatabase
+        val sqlStatement =
+            "SELECT * FROM ${ProfileTableEntry.ProfileTableName} WHERE ${ProfileTableEntry.Column_ProfileUsername} LIKE '$profileUsername'"
+
+        val cursor: Cursor = db.rawQuery(sqlStatement, null)
+        if (cursor.moveToFirst()) {
+            val result = Profile(
+                cursor.getInt(0),
+                cursor.getString(1),
+                cursor.getString(2),
+                cursor.getInt(3) == 1,
+            )
+            db.close()
+            cursor.close()
+            return result
+        } else {
+            db.close()
+            cursor.close()
+            return Profile(-1, "", "", false)
+        }
+    }
+
+    fun getSelectedProfile(): Profile {
+        val db: SQLiteDatabase = this.readableDatabase
+        val criteria = 1
+        val sqlStatement =
+            "SELECT * FROM ${ProfileTableEntry.ProfileTableName} WHERE ${ProfileTableEntry.Column_ProfileIsSelected} LIKE '$criteria'"
+
+        val cursor: Cursor = db.rawQuery(sqlStatement, null)
+        if (cursor.moveToFirst()) {
+            val result = Profile(
+                cursor.getInt(0),
+                cursor.getString(1),
+                cursor.getString(2),
+                cursor.getInt(3) == 1,
+            )
+            db.close()
+            cursor.close()
+            return result
+        } else {
+            db.close()
+            cursor.close()
+            return Profile(-1, "", "", false)
         }
     }
 
@@ -312,7 +363,8 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
                 val profileItem = Profile(
                     cursor.getInt(0),
                     cursor.getString(1),
-                    cursor.getString(2)
+                    cursor.getString(2),
+                    cursor.getInt(3) == 1,
                 )
                 profileItems += profileItem
             } while (cursor.moveToNext())
