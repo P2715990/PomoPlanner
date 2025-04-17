@@ -177,14 +177,22 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         }
     }
 
-    fun getTasks(profileId: Int, date: String, category: String): List<Task> {
+    fun getTasks(profileId: Int, date: String, category: String, priority: String, status: Int): List<Task> {
         val db: SQLiteDatabase = this.readableDatabase
         var sqlStatement =
             "SELECT * FROM ${TaskTableEntry.TaskTableName} WHERE ${ProfileTableEntry.Column_ProfileId} LIKE '$profileId' AND  " +
                     "${TaskTableEntry.Column_TaskDate} LIKE '$date'"
-        if (category != "") {
+        if (category != "All") {
             sqlStatement += " AND ${
                 TaskTableEntry.Column_TaskCategory} LIKE '$category'"
+        }
+        if (priority != "All") {
+            sqlStatement += " AND ${
+                TaskTableEntry.Column_TaskPriority} LIKE '$priority'"
+        }
+        if (status != 2) {
+            sqlStatement += " AND ${
+                TaskTableEntry.Column_TaskIsCompleted} LIKE '$status'"
         }
 
         val cursor: Cursor = db.rawQuery(sqlStatement, null)
