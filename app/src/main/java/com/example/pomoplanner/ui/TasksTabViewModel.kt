@@ -3,6 +3,7 @@ package com.example.pomoplanner.ui
 import android.app.Application
 import android.content.Context
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
@@ -24,9 +25,17 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
     val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     val formattedDate: String = formatter.format(date)
 
+    private var _selectedProfile by mutableIntStateOf(1)
+    val selectedProfile: Int
+        get() = _selectedProfile
+
     private var _selectedDate by mutableStateOf(formattedDate)
     val selectedDate: String
         get() = _selectedDate
+
+    private var _showFilterPopup by mutableStateOf(false)
+    val showFilterPopup: Boolean
+        get() = _showFilterPopup
 
     private var _showCalendarPopup by mutableStateOf(false)
     val showCalendarPopup: Boolean
@@ -40,13 +49,35 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
     val addTaskErrorMessage: String
         get() = _addTaskErrorMessage
 
-    private var _categoryOptions by mutableStateOf<List<String>>(listOf<String>("<Unfiltered>"))
+    private var _categoryOptions by mutableStateOf<List<String>>(listOf<String>("All"))
     val categoryOptions: List<String>
         get() = _categoryOptions
 
-    private var _filteredCategory by mutableStateOf("")
+    private var _filteredCategory by mutableStateOf("All")
     val filteredCategory: String
         get() = _filteredCategory
+
+    private var _filteredPriority by mutableStateOf("All")
+    val filteredPriority: String
+        get() = _filteredPriority
+
+    private var _filteredStatus by mutableIntStateOf(2)
+    val filteredStatus: Int
+        get() = _filteredStatus
+
+    // retrieve data from model
+
+    fun getCurrentTasks() {
+        _tasks = dbHelper.getTasks(selectedProfile, selectedDate, filteredCategory, filteredPriority, filteredStatus)
+        updateBadge()
+    }
+
+    fun getCategoryOptions() {
+        val taskCategories: List<String> = dbHelper.getTaskCategories(selectedProfile, selectedDate)
+        _categoryOptions = listOf("All") + taskCategories
+    }
+
+    // add data to model
 
     fun addTask(task: Task) {
         _addTaskErrorMessage = ""
@@ -65,19 +96,22 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
                 _addTaskErrorMessage += "Task Category Shouldn't Be Longer Than 50 Characters"
             }
 
-            if (task.taskCategory == "<Unfiltered>") {
+            if (task.taskCategory == "All") {
                 if (addTaskErrorMessage != "") {
                     _addTaskErrorMessage += "\n\n"
                 }
-                _addTaskErrorMessage += "Task Category Cannot Be <Unfiltered>"
+                _addTaskErrorMessage += "Task Category Cannot Be \"All\""
             }
         }
         if (addTaskErrorMessage == "") {
             dbHelper.addTask(task)
-            getCurrentTasks(1, selectedDate)
+            getCurrentTasks()
+            getCategoryOptions()
             setShowAddTaskPopup(false)
         }
     }
+
+    // update data in model
 
     fun changeTaskIsCompleted(task: Task, isCompleted: Boolean) {
         _tasks.find { it.taskId == task.taskId }?.let { task ->
@@ -87,15 +121,19 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
         updateBadge()
     }
 
+    // delete data from model
+
     fun deleteTask(task: Task) {
         dbHelper.deleteTask(task)
-        getCurrentTasks(1 /* TODO: IMPLEMENT PROFILE SYSTEM */, selectedDate)
+        getCurrentTasks()
         updateBadge()
     }
 
-    fun getCurrentTasks(selectedProfile: Int, selectedDate: String) {
-        _tasks = dbHelper.getTasks(selectedProfile, selectedDate, filteredCategory)
-        updateBadge()
+    // update data in view model
+
+    fun updateDate(date: String) {
+        _selectedDate = date
+        getCurrentTasks()
     }
 
     fun updateBadge() {
@@ -107,31 +145,38 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
-    fun updateDate(date: String) {
-        _selectedDate = date
-        getCurrentTasks(1 /* TODO: IMPLEMENT PROFILE SYSTEM */, selectedDate)
+    fun updateFilters(category: String, priority: String, completion: Int) {
+        _filteredCategory = category
+        _filteredPriority = priority
+        _filteredStatus = completion
+        setShowFilterPopup(false)
     }
 
-    fun getCategoryOptions(selectedProfile: Int, selectedDate: String) {
-        val taskCategories: List<String> = dbHelper.getTaskCategories(selectedProfile, selectedDate)
-        _categoryOptions = listOf("<Unfiltered>") + taskCategories
+    fun resetFilters() {
+        _filteredCategory = "All"
+        _filteredPriority = "All"
+        _filteredStatus = 2
+        setShowFilterPopup(false)
     }
 
-    fun updateFilteredCategory(category: String) {
-        _filteredCategory = if(category == "<Unfiltered>") {
-            ""
+    // display and hide popups
+
+    fun setShowFilterPopup(show: Boolean) {
+        if (!show) {
+            _showFilterPopup = false
         } else {
-            category
+            setShowCalendarPopup(false)
+            setShowAddTaskPopup(false)
+            _showFilterPopup = true
         }
     }
 
     fun setShowCalendarPopup(show: Boolean) {
         if (!show) {
             _showCalendarPopup = false
-        } else if (showAddTaskPopup) {
-            setShowAddTaskPopup(false)
-            _showCalendarPopup = true
         } else {
+            setShowFilterPopup(false)
+            setShowAddTaskPopup(false)
             _showCalendarPopup = true
         }
     }
@@ -139,11 +184,9 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
     fun setShowAddTaskPopup(show: Boolean) {
         if (!show) {
             _showAddTaskPopup = false
-        } else if (showCalendarPopup) {
-            setShowCalendarPopup(false)
-            _addTaskErrorMessage = ""
-            _showAddTaskPopup = true
         } else {
+            setShowFilterPopup(false)
+            setShowCalendarPopup(false)
             _addTaskErrorMessage = ""
             _showAddTaskPopup = true
         }

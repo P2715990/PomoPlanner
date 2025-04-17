@@ -25,8 +25,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxColors
 import androidx.compose.material3.CheckboxDefaults
@@ -45,11 +45,13 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,67 +72,60 @@ import com.example.pomoplanner.ui.theme.TaskRed
 fun TasksTab(
     tasksTabViewModel: TasksTabViewModel = viewModel(),
 ) {
-    tasksTabViewModel.getCurrentTasks(
-        1 /* TODO: IMPLEMENT PROFILE SYSTEM */,
-        tasksTabViewModel.selectedDate
-    )
-    tasksTabViewModel.getCategoryOptions(
-        1 /* TODO: IMPLEMENT PROFILE SYSTEM */,
-        tasksTabViewModel.selectedDate
-    )
-    tasksTabViewModel.updateBadge()
+    var firstComposition = rememberSaveable { true }
+
+    if(firstComposition) {
+        tasksTabViewModel.getCurrentTasks()
+        tasksTabViewModel.getCategoryOptions()
+        tasksTabViewModel.updateBadge()
+
+        firstComposition = false
+    }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TaskTopBar(
                 selectedDate = tasksTabViewModel.selectedDate,
+                onFilterButtonClicked = { tasksTabViewModel.setShowFilterPopup(true) },
                 onDateButtonClicked = { tasksTabViewModel.setShowCalendarPopup(true) },
                 onAddTaskButtonClicked = { tasksTabViewModel.setShowAddTaskPopup(true) }
             )
         }
-    ) { padding ->
-        Scaffold(
-            modifier = Modifier.padding(padding),
-            contentWindowInsets = WindowInsets(0.dp),
-            topBar = {
-                CategoryFilterTopBar(
-                    onCategorySelected = { category ->
-                        tasksTabViewModel.updateFilteredCategory(category)
-                    },
-                    categoryOptions = tasksTabViewModel.categoryOptions
-                )
-            }
-        ) { innerPadding ->
-            TaskListView(
-                tasks = tasksTabViewModel.tasks,
-                onCheckedChange = { task, isCompleted ->
-                    tasksTabViewModel.changeTaskIsCompleted(task, isCompleted)
-                },
-                onDeleteButtonClicked = { task ->
-                    tasksTabViewModel.deleteTask(task)
-                },
-                padding = innerPadding,
-            )
-        }
-
+    ) { innerPadding ->
+        TaskListView(
+            tasks = tasksTabViewModel.tasks,
+            onCheckedChange = { task, isCompleted ->
+                tasksTabViewModel.changeTaskIsCompleted(task, isCompleted)
+            },
+            onDeleteButtonClicked = { task ->
+                tasksTabViewModel.deleteTask(task)
+            },
+            padding = innerPadding,
+        )
     }
 
-    val popupModifier: Modifier = Modifier
-        .padding(24.dp)
-        .fillMaxWidth()
-        .clip(RoundedCornerShape(24.dp))
-        .background(MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp))
+    CustomPopupHelper(
+        showPopup = tasksTabViewModel.showFilterPopup,
+        onClickOutside = { tasksTabViewModel.setShowFilterPopup(false) },
+        content = {
+            FilterView(
+                tasksTabViewModel.categoryOptions,
+                { category, priority, status ->
+                    tasksTabViewModel.updateFilters(category, priority, status)
+                },
+                { tasksTabViewModel.resetFilters() }
+            )
+        }
+    )
 
     CustomPopupHelper(
-        modifier = popupModifier,
         showPopup = tasksTabViewModel.showCalendarPopup,
         onClickOutside = { tasksTabViewModel.setShowCalendarPopup(false) },
         content = { CalendarView() }
     )
 
     CustomPopupHelper(
-        modifier = popupModifier,
         showPopup = tasksTabViewModel.showAddTaskPopup,
         onClickOutside = { tasksTabViewModel.setShowAddTaskPopup(false) },
         content = {
@@ -139,7 +134,7 @@ fun TasksTab(
                     tasksTabViewModel.addTask(task)
                 },
                 tasksTabViewModel.selectedDate,
-                1 /* TODO: IMPLEMENT PROFILE SYSTEM */,
+                tasksTabViewModel.selectedProfile,
                 tasksTabViewModel.addTaskErrorMessage
             )
         }
@@ -150,10 +145,11 @@ fun TasksTab(
 @Composable
 fun TaskTopBar(
     selectedDate: String,
+    onFilterButtonClicked: () -> Unit,
     onDateButtonClicked: () -> Unit,
     onAddTaskButtonClicked: () -> Unit,
 ) {
-    CenterAlignedTopAppBar(
+    TopAppBar(
         title = {
             Text(
                 selectedDate,
@@ -161,15 +157,19 @@ fun TaskTopBar(
                 overflow = TextOverflow.Ellipsis
             )
         },
-        navigationIcon = {
+        actions = {
+            IconButton(onClick = { onFilterButtonClicked() }) {
+                Icon(
+                    imageVector = Icons.Filled.Search,
+                    contentDescription = "Filter"
+                )
+            }
             IconButton(onClick = { onDateButtonClicked() }) {
                 Icon(
                     imageVector = Icons.Filled.DateRange,
                     contentDescription = "Date"
                 )
             }
-        },
-        actions = {
             IconButton(onClick = { onAddTaskButtonClicked() }) {
                 Icon(
                     imageVector = Icons.Filled.Add,
@@ -178,60 +178,6 @@ fun TaskTopBar(
             }
         }
     )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CategoryFilterTopBar(
-    onCategorySelected: (String) -> Unit,
-    categoryOptions: List<String>,
-) {
-    var categoryExpanded by remember { mutableStateOf(false) }
-    var categoryState = rememberTextFieldState(categoryOptions[0])
-
-    Column(
-
-    ) {
-        ExposedDropdownMenuBox(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            expanded = categoryExpanded,
-            onExpandedChange = { newValue ->
-                categoryExpanded = newValue
-            }
-        ) {
-            OutlinedTextField(
-                modifier = Modifier
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                    .fillMaxWidth(),
-                state = categoryState,
-                readOnly = true,
-                lineLimits = TextFieldLineLimits.SingleLine,
-                label = { Text("Category Filter") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                colors = ExposedDropdownMenuDefaults.textFieldColors()
-            )
-            ExposedDropdownMenu(
-                expanded = categoryExpanded,
-                onDismissRequest = { categoryExpanded = false }
-            ) {
-                categoryOptions.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option) },
-                        onClick = {
-                            categoryState.setTextAndPlaceCursorAtEnd(option)
-                            categoryExpanded = false
-                            onCategorySelected(option)
-                        },
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                    )
-                }
-            }
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(top = 8.dp, bottom = 8.dp))
-    }
 }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -323,7 +269,6 @@ fun TaskListView(
 
 @Composable
 fun CustomPopupHelper(
-    modifier: Modifier,
     showPopup: Boolean,
     onClickOutside: () -> Unit,
     content: @Composable() () -> Unit,
@@ -342,7 +287,11 @@ fun CustomPopupHelper(
             contentAlignment = Alignment.Center
         ) {
             Box(
-                modifier = modifier
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(MaterialTheme.colorScheme.surfaceColorAtElevation(8.dp))
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null
@@ -350,6 +299,200 @@ fun CustomPopupHelper(
                 contentAlignment = Alignment.Center
             ) {
                 content()
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun FilterView(
+    categoryOptions: List<String>,
+    onFilterButtonClicked: (String, String, Int) -> Unit,
+    onResetButtonClicked: () -> Unit,
+) {
+    val priorityOptions: List<String> = listOf("All", "Low", "Moderate", "High")
+
+    val statusOptions: List<String> = listOf("All", "Not Completed", "Completed")
+
+    var categoryExpanded by remember { mutableStateOf(false) }
+    var categoryState = rememberTextFieldState(categoryOptions[0])
+    var priorityExpanded by remember { mutableStateOf(false )}
+    var priorityState = rememberTextFieldState(priorityOptions[0])
+    var statusExpanded by remember { mutableStateOf(false) }
+    var statusState = rememberTextFieldState(statusOptions[0])
+
+    Column(
+        modifier = Modifier
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Filter Tasks",
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        ExposedDropdownMenuBox(
+            modifier = Modifier
+                .fillMaxWidth(),
+            expanded = categoryExpanded,
+            onExpandedChange = { newValue ->
+                categoryExpanded = newValue
+            }
+        ) {
+            OutlinedTextField(
+                modifier = Modifier
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
+                state = categoryState,
+                readOnly = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                label = { Text("Task Category") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                colors = ExposedDropdownMenuDefaults.textFieldColors()
+            )
+            ExposedDropdownMenu(
+                expanded = categoryExpanded,
+                onDismissRequest = { categoryExpanded = false }
+            ) {
+                categoryOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            categoryState.setTextAndPlaceCursorAtEnd(option)
+                            categoryExpanded = false
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                    )
+                }
+            }
+        }
+
+        ExposedDropdownMenuBox(
+            modifier = Modifier
+                .fillMaxWidth(),
+            expanded = priorityExpanded,
+            onExpandedChange = { newValue ->
+                priorityExpanded = newValue
+            }
+        ) {
+            OutlinedTextField(
+                modifier = Modifier
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
+                state = priorityState,
+                readOnly = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                label = { Text("Task Priority") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = priorityExpanded) },
+                colors = ExposedDropdownMenuDefaults.textFieldColors()
+            )
+            ExposedDropdownMenu(
+                expanded = priorityExpanded,
+                onDismissRequest = { priorityExpanded = false }
+            ) {
+                priorityOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            priorityState.setTextAndPlaceCursorAtEnd(option)
+                            priorityExpanded = false
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                    )
+                }
+            }
+        }
+
+        ExposedDropdownMenuBox(
+            modifier = Modifier
+                .fillMaxWidth(),
+            expanded = statusExpanded,
+            onExpandedChange = { newValue ->
+                statusExpanded = newValue
+            }
+        ) {
+            OutlinedTextField(
+                modifier = Modifier
+                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
+                state = statusState,
+                readOnly = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                label = { Text("Task Status") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = statusExpanded) },
+                colors = ExposedDropdownMenuDefaults.textFieldColors()
+            )
+            ExposedDropdownMenu(
+                expanded = statusExpanded,
+                onDismissRequest = { statusExpanded = false }
+            ) {
+                statusOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option) },
+                        onClick = {
+                            statusState.setTextAndPlaceCursorAtEnd(option)
+                            statusExpanded = false
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .height(intrinsicSize = IntrinsicSize.Max),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            OutlinedButton(
+                modifier = Modifier
+                    .weight(1F)
+                    .padding(
+                        end = 8.dp
+                    )
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+                onClick = {
+                    onResetButtonClicked()
+                },
+                shape = RectangleShape
+            ) {
+                Text(
+                    text = "Reset Filters",
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+
+            OutlinedButton(
+                modifier = Modifier
+                    .weight(1F)
+                    .padding(
+                        start = 8.dp
+                    )
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+                onClick = {
+                    onFilterButtonClicked(
+                        categoryState.text.toString(),
+                        priorityState.text.toString(),
+                        when (statusState.text.toString()) {
+                            "Not Completed" -> 0
+                            "Completed" -> 1
+                            else -> 2
+                        }
+                    )
+                },
+                shape = RectangleShape
+            ) {
+                Text(
+                    text = "Confirm Filters",
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
             }
         }
     }
@@ -368,10 +511,12 @@ fun AddTaskView(
     selectedProfile: Int,
     addTaskErrorMessage: String,
 ) {
+    val priorityOptions: List<String> = listOf("Low", "Moderate", "High")
+
     var taskDetailsText by remember { mutableStateOf("") }
     var taskCategoryText by remember { mutableStateOf("") }
+
     var priorityExpanded by remember { mutableStateOf(false) }
-    val priorityOptions: List<String> = listOf("Low", "Moderate", "High")
     var priorityState = rememberTextFieldState(priorityOptions[0])
 
     Column(
