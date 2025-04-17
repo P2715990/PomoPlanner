@@ -9,7 +9,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import com.example.pomoplanner.model.DBHelper
 import com.example.pomoplanner.model.Task
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 class TasksTabViewModel(application: Application) : AndroidViewModel(application) {
@@ -131,9 +133,13 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
 
     // update data in view model
 
-    fun updateDate(date: String) {
-        _selectedDate = date
-        getCurrentTasks()
+    fun updateDate(dateMillis: Long?) {
+        if(dateMillis != null) {
+            val newDate: LocalDate = Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).toLocalDate()
+            val formattedNewDate: String = formatter.format(newDate)
+            _selectedDate = formattedNewDate
+            getCurrentTasks()
+        }
     }
 
     fun updateBadge() {

@@ -27,9 +27,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxColors
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -46,6 +49,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -74,7 +78,7 @@ fun TasksTab(
 ) {
     var firstComposition = rememberSaveable { true }
 
-    if(firstComposition) {
+    if (firstComposition) {
         tasksTabViewModel.getCurrentTasks()
         tasksTabViewModel.getCategoryOptions()
         tasksTabViewModel.updateBadge()
@@ -122,7 +126,14 @@ fun TasksTab(
     CustomPopupHelper(
         showPopup = tasksTabViewModel.showCalendarPopup,
         onClickOutside = { tasksTabViewModel.setShowCalendarPopup(false) },
-        content = { CalendarView() }
+        content = {
+            CalendarView(
+                { dateMillis ->
+                    tasksTabViewModel.updateDate(dateMillis)
+                },
+                { tasksTabViewModel.setShowCalendarPopup(false) }
+            )
+        }
     )
 
     CustomPopupHelper(
@@ -317,7 +328,7 @@ fun FilterView(
 
     var categoryExpanded by remember { mutableStateOf(false) }
     var categoryState = rememberTextFieldState(categoryOptions[0])
-    var priorityExpanded by remember { mutableStateOf(false )}
+    var priorityExpanded by remember { mutableStateOf(false) }
     var priorityState = rememberTextFieldState(priorityOptions[0])
     var statusExpanded by remember { mutableStateOf(false) }
     var statusState = rememberTextFieldState(statusOptions[0])
@@ -498,9 +509,64 @@ fun FilterView(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalendarView() {
-    Text("TODO: Implement CalendarView")
+fun CalendarView(
+    onDateSelected: (Long?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val datePickerState = rememberDatePickerState()
+
+    DatePickerDialog(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+        onDismissRequest = { onDismiss() },
+        confirmButton = {
+            Button(
+                modifier = Modifier
+                    .padding(
+                        bottom = 8.dp,
+                        end = 4.dp
+                    )
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+                onClick = {
+                    onDateSelected(datePickerState.selectedDateMillis)
+                    onDismiss()
+                },
+                shape = RectangleShape
+            ) {
+                Text(
+                    text = "Confirm",
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        },
+        dismissButton = {
+            Button(
+                modifier = Modifier
+                    .padding(
+                        bottom = 8.dp,
+                        start = 4.dp,
+                        end = 8.dp
+                    )
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.primary),
+                onClick = {
+                    onDismiss()
+                },
+                shape = RectangleShape
+            ) {
+                Text(
+                    text = "Cancel",
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
