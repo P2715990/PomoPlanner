@@ -62,6 +62,7 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
 
     fun getSelectedProfile() {
         _selectedProfile = dbHelper.getSelectedProfile()
+        tasksTab.isDisabled = _selectedProfile!!.profileId == -1
     }
 
     // add data to model
@@ -131,6 +132,7 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
         if (deleteProfileErrorMessage == "") {
             dbHelper.deleteProfile(profile)
             getProfiles()
+            getSelectedProfile()
             setShowConfirmDeletePopup(false)
         }
     }

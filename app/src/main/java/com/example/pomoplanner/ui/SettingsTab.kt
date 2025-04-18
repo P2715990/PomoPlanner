@@ -5,5 +5,5 @@ import androidx.compose.runtime.Composable
 
 @Composable
 fun SettingsTab() {
-    Text(settingsTab.title)
+    Text("Settings Tab")
 }
