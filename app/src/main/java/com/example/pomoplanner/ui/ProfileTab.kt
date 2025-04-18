@@ -86,6 +86,38 @@ fun ProfileTab(
             )
         }
     )
+
+    if (profileTabViewModel.interactedProfile != null) {
+        CustomPopupHelper(
+            showPopup = profileTabViewModel.showConfirmDeletePopup,
+            onClickOutside = { profileTabViewModel.setShowConfirmDeletePopup(false) },
+            content = {
+                ConfirmDeleteView(
+                    profileTabViewModel.interactedProfile!!,
+                    profileTabViewModel.deleteProfileErrorMessage,
+                    { profile, password ->
+                        profileTabViewModel.deleteProfile(profile, password)
+                    }
+                )
+            }
+        )
+    }
+
+    if (profileTabViewModel.interactedProfile != null) {
+        CustomPopupHelper(
+            showPopup = profileTabViewModel.showPasswordPopup,
+            onClickOutside = { profileTabViewModel.setShowPasswordPopup(false) },
+            content = {
+                PasswordLoginView (
+                    profileTabViewModel.interactedProfile!!,
+                    profileTabViewModel.enterPasswordErrorMessage,
+                    { profile, password ->
+                        profileTabViewModel.onLoginClicked(profile, password)
+                    }
+                )
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -232,6 +264,137 @@ fun AddProfileView(
         if (addProfileErrorMessage != "") {
             Text(
                 text = addProfileErrorMessage,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ConfirmDeleteView(
+    interactedProfile: Profile,
+    deleteProfileErrorMessage: String,
+    onConfirmDeleteButtonClicked: (Profile, String) -> Unit,
+) {
+    var confirmPasswordText by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Are You Sure You Want To Delete Profile:\n\"" + interactedProfile.profileUsername + "\"",
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        if (interactedProfile.profilePassword != null) {
+            OutlinedTextField(
+                modifier = Modifier
+                    .fillMaxWidth(),
+                value = confirmPasswordText,
+                onValueChange = { confirmPasswordText = it },
+                label = { Text("Enter Password") },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password
+                ),
+                visualTransformation = PasswordVisualTransformation(),
+                colors = ExposedDropdownMenuDefaults.textFieldColors()
+            )
+        }
+
+        Button(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.primary),
+            onClick = {
+                onConfirmDeleteButtonClicked(
+                    interactedProfile,
+                    confirmPasswordText.toString()
+                )
+            },
+            shape = RectangleShape
+        ) {
+            Text(
+                text = "Yes I'm Sure",
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+
+        if (deleteProfileErrorMessage != "") {
+            Text(
+                text = deleteProfileErrorMessage,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PasswordLoginView(
+    interactedProfile: Profile,
+    enterPasswordErrorMessage: String,
+    onLoginButtonClicked: (Profile, String) -> Unit,
+) {
+    var confirmPasswordText by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .padding(24.dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "The Profile: \"" + interactedProfile.profileUsername + "\"\nRequires a Password",
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+
+        OutlinedTextField(
+            modifier = Modifier
+                .fillMaxWidth(),
+            value = confirmPasswordText,
+            onValueChange = { confirmPasswordText = it },
+            label = { Text("Password") },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password
+            ),
+            visualTransformation = PasswordVisualTransformation(),
+            colors = ExposedDropdownMenuDefaults.textFieldColors()
+        )
+
+        Button(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.primary),
+            onClick = {
+                onLoginButtonClicked(
+                    interactedProfile,
+                    confirmPasswordText.toString()
+                )
+            },
+            shape = RectangleShape
+        ) {
+            Text(
+                text = "Login",
+                color = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+
+        if (enterPasswordErrorMessage != "") {
+            Text(
+                text = enterPasswordErrorMessage,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.error
             )

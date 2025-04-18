@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
+import com.example.caferose.model.HashHelper
 import com.example.pomoplanner.model.DBHelper
 import com.example.pomoplanner.model.Profile
 import kotlin.collections.List
@@ -14,6 +15,8 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
     private val context: Context
         get() = getApplication<Application>().applicationContext
     val dbHelper: DBHelper = DBHelper(context)
+
+    val hashHelper: HashHelper = HashHelper()
 
     private var _profiles by mutableStateOf<List<Profile>>(listOf<Profile>())
     val profiles: List<Profile>
@@ -30,6 +33,14 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
     private var _addProfileErrorMessage by mutableStateOf("")
     val addProfileErrorMessage: String
         get() = _addProfileErrorMessage
+
+    private var _deleteProfileErrorMessage by mutableStateOf("")
+    val deleteProfileErrorMessage: String
+        get() = _deleteProfileErrorMessage
+
+    private var _enterPasswordErrorMessage by mutableStateOf("")
+    val enterPasswordErrorMessage: String
+        get() = _enterPasswordErrorMessage
 
     private var _showAddProfilePopup by mutableStateOf(false)
     val showAddProfilePopup: Boolean
@@ -73,7 +84,7 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
         }
 
         if (profile.profilePassword != null) {
-            if (profile.profilePassword.length > 50) {
+            if (profile.profilePassword!!.length > 50) {
                 if (addProfileErrorMessage != "") {
                     _addProfileErrorMessage += "\n\n"
                 }
@@ -82,6 +93,11 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
         }
 
         if (addProfileErrorMessage == "") {
+            if (profile.profilePassword != null) {
+                val hashedPassword = hashHelper.getHashCode(profile.profilePassword!!)
+                profile.profilePassword = hashedPassword
+            }
+
             dbHelper.addProfile(profile)
             getProfiles()
             setShowAddProfilePopup(false)
@@ -103,6 +119,22 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
 
     // delete data from model
 
+    fun deleteProfile(profile: Profile, password: String) {
+        _deleteProfileErrorMessage = ""
+        if (profile.profilePassword != null) {
+            val hashedPassword = hashHelper.getHashCode(password)
+            if (profile.profilePassword != hashedPassword) {
+                _deleteProfileErrorMessage += "Password is Incorrect"
+            }
+        }
+
+        if (deleteProfileErrorMessage == "") {
+            dbHelper.deleteProfile(profile)
+            getProfiles()
+            setShowConfirmDeletePopup(false)
+        }
+    }
+
     // update data in view model
 
     fun onProfileClicked(profile: Profile) {
@@ -114,8 +146,23 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
+    fun onLoginClicked(profile: Profile, password: String) {
+        _enterPasswordErrorMessage = ""
+
+        val hashedPassword = hashHelper.getHashCode(password)
+        if (profile.profilePassword != hashedPassword) {
+            _enterPasswordErrorMessage += "Password is Incorrect"
+        }
+
+        if (enterPasswordErrorMessage == "") {
+            swapSelectedProfile(profile)
+            setShowPasswordPopup(false)
+        }
+    }
+
     fun onDeleteClicked(profile: Profile) {
-        /* TODO: IMPLEMENT onDeleteClicked */
+        setInteractedProfile(profile)
+        setShowConfirmDeletePopup(true)
     }
 
     fun setInteractedProfile(profile: Profile) {

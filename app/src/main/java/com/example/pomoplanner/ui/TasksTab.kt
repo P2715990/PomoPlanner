@@ -71,6 +71,7 @@ import com.example.pomoplanner.ui.theme.TaskRed
 fun TasksTab(
     tasksTabViewModel: TasksTabViewModel = viewModel(),
 ) {
+    tasksTabViewModel.getSelectedProfile()
     tasksTabViewModel.getCurrentTasks()
     tasksTabViewModel.getCategoryOptions()
     tasksTabViewModel.updateBadge()
@@ -125,20 +126,22 @@ fun TasksTab(
         }
     )
 
-    CustomPopupHelper(
-        showPopup = tasksTabViewModel.showAddTaskPopup,
-        onClickOutside = { tasksTabViewModel.setShowAddTaskPopup(false) },
-        content = {
-            AddTaskView(
-                { task ->
-                    tasksTabViewModel.addTask(task)
-                },
-                tasksTabViewModel.selectedDate,
-                tasksTabViewModel.selectedProfile,
-                tasksTabViewModel.addTaskErrorMessage
-            )
-        }
-    )
+    if (tasksTabViewModel.selectedProfile != null) {
+        CustomPopupHelper(
+            showPopup = tasksTabViewModel.showAddTaskPopup,
+            onClickOutside = { tasksTabViewModel.setShowAddTaskPopup(false) },
+            content = {
+                AddTaskView(
+                    { task ->
+                        tasksTabViewModel.addTask(task)
+                    },
+                    tasksTabViewModel.selectedDate,
+                    tasksTabViewModel.selectedProfile!!.profileId,
+                    tasksTabViewModel.addTaskErrorMessage
+                )
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
