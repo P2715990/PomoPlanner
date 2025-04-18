@@ -5,5 +5,5 @@ import androidx.compose.runtime.Composable
 
 @Composable
 fun PomodoroTab() {
-    Text(pomodoroTab.title)
+    Text("Pomodoro Tab")
 }

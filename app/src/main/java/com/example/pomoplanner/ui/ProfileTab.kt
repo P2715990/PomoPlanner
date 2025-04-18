@@ -151,8 +151,6 @@ fun ProfileListView(
     onDeleteButtonClicked: (Profile) -> Unit,
     padding: PaddingValues,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-
     LazyColumn(
         modifier = Modifier
             .padding(padding)
@@ -163,6 +161,8 @@ fun ProfileListView(
     ) {
         profiles.forEachIndexed { index, profile ->
             item {
+                val interactionSource = remember { MutableInteractionSource() }
+
                 Surface(
                     modifier = Modifier
                         .fillMaxSize()

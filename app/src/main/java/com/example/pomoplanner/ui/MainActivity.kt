@@ -2,8 +2,11 @@ package com.example.pomoplanner.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.interaction.Interaction
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -28,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -37,15 +41,20 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.pomoplanner.model.DBHelper
+import com.example.pomoplanner.model.Profile
 import com.example.pomoplanner.ui.theme.PomoPlannerTheme
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
-// class for items on the navigation bar
 class TabBarItem(
     val title: String,
     val selectedIcon: ImageVector,
     val unselectedIcon: ImageVector,
+    initialIsDisabled: Boolean = false,
     initialBadgeAmount: Int? = null,
 ) {
+    var isDisabled by mutableStateOf(initialIsDisabled)
     var badgeAmount by mutableStateOf(initialBadgeAmount)
 }
 
@@ -58,17 +67,18 @@ val profileTab = TabBarItem(
 val tasksTab = TabBarItem(
     title = "Tasks",
     selectedIcon = Icons.AutoMirrored.Filled.List,
-    unselectedIcon = Icons.AutoMirrored.Outlined.List
+    unselectedIcon = Icons.AutoMirrored.Outlined.List,
+    true
 )
 val pomodoroTab = TabBarItem(
     title = "Pomodoro",
     selectedIcon = Icons.Filled.Notifications,
-    unselectedIcon = Icons.Outlined.Notifications
+    unselectedIcon = Icons.Outlined.Notifications,
 )
 val settingsTab = TabBarItem(
     title = "Settings",
     selectedIcon = Icons.Filled.Settings,
-    unselectedIcon = Icons.Outlined.Settings
+    unselectedIcon = Icons.Outlined.Settings,
 )
 
 // creating list of navigation tabs
@@ -79,6 +89,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // log out of any profile on launch
+        val dbHelper = DBHelper(this)
+
+        val profile: Profile = dbHelper.getSelectedProfile()
+        if (profile.profileId != -1) {
+            profile.profileIsSelected = false
+            dbHelper.updateProfile(profile)
+        }
+
         setContent {
             PomoPlannerTheme {
                 PomoPlannerApp()
@@ -92,6 +112,7 @@ class MainActivity : ComponentActivity() {
 private fun PomoPlannerApp() {
     // creating navController
     val navController = rememberNavController()
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
@@ -99,17 +120,33 @@ private fun PomoPlannerApp() {
         Scaffold(
             bottomBar = { TabView(tabBarItems, navController) }
         ) { innerPadding ->
-            NavHost(modifier = Modifier.padding(innerPadding), navController = navController, startDestination = tasksTab.title) {
+            NavHost(
+                modifier = Modifier.padding(innerPadding),
+                navController = navController,
+                startDestination = profileTab.title
+            ) {
                 composable(profileTab.title) {
+                    BackHandler(true) {
+                        // disable back navigating
+                    }
                     ProfileTab()
                 }
                 composable(tasksTab.title) {
+                    BackHandler(true) {
+                        // disable back navigating
+                    }
                     TasksTab()
                 }
                 composable(pomodoroTab.title) {
+                    BackHandler(true) {
+                        // disable back navigating
+                    }
                     PomodoroTab()
                 }
                 composable(settingsTab.title) {
+                    BackHandler(true) {
+                        // disable back navigating
+                    }
                     SettingsTab()
                 }
             }
@@ -121,16 +158,32 @@ private fun PomoPlannerApp() {
 @Composable
 private fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
     var selectedTabIndex by rememberSaveable {
-        mutableIntStateOf(1)
+        mutableIntStateOf(0)
+    }
+
+    class NoAnimationInteractionSource : MutableInteractionSource {
+        override val interactions: Flow<Interaction> = emptyFlow()
+        override suspend fun emit(interaction: Interaction) {}
+        override fun tryEmit(interaction: Interaction) = true
     }
 
     NavigationBar {
         tabBarItems.forEachIndexed { index, tabBarItem ->
+            val noAnimationInteractionSource = remember { NoAnimationInteractionSource() }
+            val interactionSource = remember { MutableInteractionSource() }
+
             NavigationBarItem(
                 selected = selectedTabIndex == index,
                 onClick = {
-                    selectedTabIndex = index
-                    navController.navigate(tabBarItem.title)
+                    if (!tabBarItem.isDisabled) {
+                        selectedTabIndex = index
+                        navController.navigate(tabBarItem.title)
+                    }
+                },
+                interactionSource = if (tabBarItem.isDisabled) {
+                    noAnimationInteractionSource
+                } else {
+                    interactionSource
                 },
                 icon = {
                     TabBarIconView(
@@ -138,10 +191,20 @@ private fun TabView(tabBarItems: List<TabBarItem>, navController: NavController)
                         selectedIcon = tabBarItem.selectedIcon,
                         unselectedIcon = tabBarItem.unselectedIcon,
                         title = tabBarItem.title,
+                        isDisabled = tabBarItem.isDisabled,
                         badgeAmount = tabBarItem.badgeAmount
                     )
                 },
-                label = { Text(tabBarItem.title) })
+                label = {
+                    Text(
+                        modifier = if (tabBarItem.isDisabled) {
+                            Modifier.alpha(0.5f)
+                        } else {
+                            Modifier.alpha(1f)
+                        },
+                        text = tabBarItem.title
+                    )
+                })
         }
     }
 }
@@ -154,10 +217,16 @@ private fun TabBarIconView(
     selectedIcon: ImageVector,
     unselectedIcon: ImageVector,
     title: String,
+    isDisabled: Boolean,
     badgeAmount: Int? = null,
 ) {
     BadgedBox(badge = { TabBarBadgeView(badgeAmount) }) {
         Icon(
+            modifier = if (isDisabled) {
+                Modifier.alpha(0.5f)
+            } else {
+                Modifier.alpha(1f)
+            },
             imageVector = if (isSelected) {
                 selectedIcon
             } else {
