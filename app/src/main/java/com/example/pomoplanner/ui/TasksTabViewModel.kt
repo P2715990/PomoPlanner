@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import com.example.pomoplanner.model.DBHelper
+import com.example.pomoplanner.model.Profile
 import com.example.pomoplanner.model.Task
 import java.time.Instant
 import java.time.LocalDate
@@ -27,8 +28,8 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
     val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
     val formattedDate: String = formatter.format(date)
 
-    private var _selectedProfile by mutableIntStateOf(1)
-    val selectedProfile: Int
+    private var _selectedProfile by mutableStateOf<Profile?>(null)
+    val selectedProfile: Profile?
         get() = _selectedProfile
 
     private var _selectedDate by mutableStateOf(formattedDate)
@@ -69,14 +70,29 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
 
     // retrieve data from model
 
+    fun getSelectedProfile() {
+        _selectedProfile = dbHelper.getSelectedProfile()
+    }
+
     fun getCurrentTasks() {
-        _tasks = dbHelper.getTasks(selectedProfile, selectedDate, filteredCategory, filteredPriority, filteredStatus)
-        updateBadge()
+        if (selectedProfile != null) {
+            _tasks = dbHelper.getTasks(
+                selectedProfile!!.profileId,
+                selectedDate,
+                filteredCategory,
+                filteredPriority,
+                filteredStatus
+            )
+            updateBadge()
+        }
     }
 
     fun getCategoryOptions() {
-        val taskCategories: List<String> = dbHelper.getTaskCategories(selectedProfile, selectedDate)
-        _categoryOptions = listOf("All") + taskCategories
+        if (selectedProfile != null) {
+            val taskCategories: List<String> =
+                dbHelper.getTaskCategories(selectedProfile!!.profileId, selectedDate)
+            _categoryOptions = listOf("All") + taskCategories
+        }
     }
 
     // add data to model
@@ -134,8 +150,9 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
     // update data in view model
 
     fun updateDate(dateMillis: Long?) {
-        if(dateMillis != null) {
-            val newDate: LocalDate = Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).toLocalDate()
+        if (dateMillis != null) {
+            val newDate: LocalDate =
+                Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).toLocalDate()
             val formattedNewDate: String = formatter.format(newDate)
             _selectedDate = formattedNewDate
             getCurrentTasks()
