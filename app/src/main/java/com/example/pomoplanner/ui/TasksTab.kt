@@ -69,18 +69,16 @@ import com.example.pomoplanner.ui.theme.TaskRed
 
 @Composable
 fun TasksTab(
+    mainActivityViewModel: MainActivityViewModel,
     tasksTabViewModel: TasksTabViewModel = viewModel(),
 ) {
-    tasksTabViewModel.getSelectedProfile()
-    tasksTabViewModel.getCurrentTasks()
-    tasksTabViewModel.getCategoryOptions()
-    tasksTabViewModel.updateBadge()
+    tasksTabViewModel.getCategoryOptions(mainActivityViewModel.selectedProfile, mainActivityViewModel.selectedDate)
 
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
         topBar = {
             TaskTopBar(
-                selectedDate = tasksTabViewModel.selectedDate,
+                selectedDate = mainActivityViewModel.selectedDate,
                 onFilterButtonClicked = { tasksTabViewModel.setShowFilterPopup(true) },
                 onDateButtonClicked = { tasksTabViewModel.setShowCalendarPopup(true) },
                 onAddTaskButtonClicked = { tasksTabViewModel.setShowAddTaskPopup(true) }
@@ -88,12 +86,14 @@ fun TasksTab(
         }
     ) { innerPadding ->
         TaskListView(
-            tasks = tasksTabViewModel.tasks,
+            tasks = mainActivityViewModel.tasks,
             onCheckedChange = { task, isCompleted ->
                 tasksTabViewModel.changeTaskIsCompleted(task, isCompleted)
+                mainActivityViewModel.getCurrentTasks()
             },
             onDeleteButtonClicked = { task ->
                 tasksTabViewModel.deleteTask(task)
+                mainActivityViewModel.getCurrentTasks()
             },
             padding = innerPadding,
         )
@@ -106,9 +106,13 @@ fun TasksTab(
             FilterView(
                 tasksTabViewModel.categoryOptions,
                 { category, priority, status ->
-                    tasksTabViewModel.updateFilters(category, priority, status)
+                    mainActivityViewModel.updateFilters(category, priority, status)
+                    tasksTabViewModel.setShowFilterPopup(false)
                 },
-                { tasksTabViewModel.resetFilters() }
+                {
+                    mainActivityViewModel.resetFilters()
+                    tasksTabViewModel.setShowFilterPopup(false)
+                }
             )
         }
     )
@@ -119,14 +123,16 @@ fun TasksTab(
         content = {
             CalendarView(
                 { dateMillis ->
-                    tasksTabViewModel.updateDate(dateMillis)
+                    mainActivityViewModel.updateDate(dateMillis)
+                    mainActivityViewModel.getCurrentTasks()
+                    tasksTabViewModel.setShowCalendarPopup(false)
                 },
                 { tasksTabViewModel.setShowCalendarPopup(false) }
             )
         }
     )
 
-    if (tasksTabViewModel.selectedProfile != null) {
+    if (mainActivityViewModel.selectedProfile != null) {
         CustomPopupHelper(
             showPopup = tasksTabViewModel.showAddTaskPopup,
             onClickOutside = { tasksTabViewModel.setShowAddTaskPopup(false) },
@@ -134,9 +140,10 @@ fun TasksTab(
                 AddTaskView(
                     { task ->
                         tasksTabViewModel.addTask(task)
+                        mainActivityViewModel.getCurrentTasks()
                     },
-                    tasksTabViewModel.selectedDate,
-                    tasksTabViewModel.selectedProfile!!.profileId,
+                    mainActivityViewModel.selectedDate,
+                    mainActivityViewModel.selectedProfile!!.profileId,
                     tasksTabViewModel.addTaskErrorMessage
                 )
             }

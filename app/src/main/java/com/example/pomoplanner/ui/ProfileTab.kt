@@ -51,10 +51,11 @@ import com.example.pomoplanner.ui.theme.TaskGreen
 
 @Composable
 fun ProfileTab(
+    mainActivityViewModel: MainActivityViewModel,
     profileTabViewModel: ProfileTabViewModel = viewModel(),
 ) {
     profileTabViewModel.getProfiles()
-    profileTabViewModel.getSelectedProfile()
+    mainActivityViewModel.getSelectedProfile()
 
     Scaffold(
         contentWindowInsets = WindowInsets(0.dp),
@@ -65,10 +66,16 @@ fun ProfileTab(
         ProfileListView(
             profiles = profileTabViewModel.profiles,
             onProfileClicked = { profile ->
-                profileTabViewModel.onProfileClicked(profile)
+                profileTabViewModel.setInteractedProfile(profile)
+                if (profileTabViewModel.interactedProfile?.profilePassword != null) {
+                    profileTabViewModel.setShowPasswordPopup(true)
+                } else {
+                    mainActivityViewModel.swapSelectedProfile(profile)
+                }
             },
             onDeleteButtonClicked = { profile ->
-                profileTabViewModel.onDeleteClicked(profile)
+                profileTabViewModel.setInteractedProfile(profile)
+                profileTabViewModel.setShowConfirmDeletePopup(true)
             },
             padding = innerPadding,
         )
@@ -94,11 +101,11 @@ fun ProfileTab(
             content = {
                 ConfirmDeleteView(
                     profileTabViewModel.interactedProfile!!,
-                    profileTabViewModel.deleteProfileErrorMessage,
-                    { profile, password ->
-                        profileTabViewModel.deleteProfile(profile, password)
-                    }
-                )
+                    profileTabViewModel.deleteProfileErrorMessage
+                ) { profile, password ->
+                    profileTabViewModel.deleteProfile(profile, password)
+                    mainActivityViewModel.getSelectedProfile()
+                }
             }
         )
     }
@@ -110,11 +117,18 @@ fun ProfileTab(
             content = {
                 PasswordLoginView (
                     profileTabViewModel.interactedProfile!!,
-                    profileTabViewModel.enterPasswordErrorMessage,
-                    { profile, password ->
-                        profileTabViewModel.onLoginClicked(profile, password)
+                    profileTabViewModel.enterPasswordErrorMessage
+                ) { profile, password ->
+                    profileTabViewModel.setEnterPasswordErrorMessage("")
+                    if (!profileTabViewModel.verifyPassword(profile.profilePassword!!, password)) {
+                        profileTabViewModel.setEnterPasswordErrorMessage("Password is Incorrect")
                     }
-                )
+
+                    if (profileTabViewModel.enterPasswordErrorMessage == "") {
+                        mainActivityViewModel.swapSelectedProfile(profile)
+                        profileTabViewModel.setShowPasswordPopup(false)
+                    }
+                }
             }
         )
     }

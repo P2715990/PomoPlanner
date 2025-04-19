@@ -3,38 +3,17 @@ package com.example.pomoplanner.ui
 import android.app.Application
 import android.content.Context
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import com.example.pomoplanner.model.DBHelper
 import com.example.pomoplanner.model.Profile
 import com.example.pomoplanner.model.Task
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 class TasksTabViewModel(application: Application) : AndroidViewModel(application) {
     private val context: Context
         get() = getApplication<Application>().applicationContext
     val dbHelper: DBHelper = DBHelper(context)
-
-    private var _tasks by mutableStateOf<List<Task>>(listOf<Task>())
-    val tasks: List<Task>
-        get() = _tasks
-
-    val date: LocalDate = LocalDate.now()
-    val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
-    val formattedDate: String = formatter.format(date)
-
-    private var _selectedProfile by mutableStateOf<Profile?>(null)
-    val selectedProfile: Profile?
-        get() = _selectedProfile
-
-    private var _selectedDate by mutableStateOf(formattedDate)
-    val selectedDate: String
-        get() = _selectedDate
 
     private var _showFilterPopup by mutableStateOf(false)
     val showFilterPopup: Boolean
@@ -56,46 +35,13 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
     val categoryOptions: List<String>
         get() = _categoryOptions
 
-    private var _filteredCategory by mutableStateOf("All")
-    val filteredCategory: String
-        get() = _filteredCategory
-
-    private var _filteredPriority by mutableStateOf("All")
-    val filteredPriority: String
-        get() = _filteredPriority
-
-    private var _filteredStatus by mutableIntStateOf(2)
-    val filteredStatus: Int
-        get() = _filteredStatus
-
-    // retrieve data from model
-
-    fun getSelectedProfile() {
-        _selectedProfile = dbHelper.getSelectedProfile()
-    }
-
-    fun getCurrentTasks() {
-        if (selectedProfile != null) {
-            _tasks = dbHelper.getTasks(
-                selectedProfile!!.profileId,
-                selectedDate,
-                filteredCategory,
-                filteredPriority,
-                filteredStatus
-            )
-            updateBadge()
-        }
-    }
-
-    fun getCategoryOptions() {
+    fun getCategoryOptions(selectedProfile: Profile?, selectedDate: String) {
         if (selectedProfile != null) {
             val taskCategories: List<String> =
-                dbHelper.getTaskCategories(selectedProfile!!.profileId, selectedDate)
+                dbHelper.getTaskCategories(selectedProfile.profileId, selectedDate)
             _categoryOptions = listOf("All") + taskCategories
         }
     }
-
-    // add data to model
 
     fun addTask(task: Task) {
         _addTaskErrorMessage = ""
@@ -123,66 +69,18 @@ class TasksTabViewModel(application: Application) : AndroidViewModel(application
         }
         if (addTaskErrorMessage == "") {
             dbHelper.addTask(task)
-            getCurrentTasks()
-            getCategoryOptions()
             setShowAddTaskPopup(false)
         }
     }
 
-    // update data in model
-
     fun changeTaskIsCompleted(task: Task, isCompleted: Boolean) {
-        _tasks.find { it.taskId == task.taskId }?.let { task ->
-            task.taskIsCompleted = isCompleted
-            dbHelper.updateTask(task)
-        }
-        updateBadge()
+        task.taskIsCompleted = isCompleted
+        dbHelper.updateTask(task)
     }
-
-    // delete data from model
 
     fun deleteTask(task: Task) {
         dbHelper.deleteTask(task)
-        getCurrentTasks()
-        updateBadge()
     }
-
-    // update data in view model
-
-    fun updateDate(dateMillis: Long?) {
-        if (dateMillis != null) {
-            val newDate: LocalDate =
-                Instant.ofEpochMilli(dateMillis).atZone(ZoneId.systemDefault()).toLocalDate()
-            val formattedNewDate: String = formatter.format(newDate)
-            _selectedDate = formattedNewDate
-            getCurrentTasks()
-        }
-    }
-
-    fun updateBadge() {
-        val remainingTasks: List<Task> = _tasks.filter { it.taskIsCompleted == false }
-        if (remainingTasks.isEmpty()) {
-            tasksTab.badgeAmount = null
-        } else {
-            tasksTab.badgeAmount = remainingTasks.size
-        }
-    }
-
-    fun updateFilters(category: String, priority: String, completion: Int) {
-        _filteredCategory = category
-        _filteredPriority = priority
-        _filteredStatus = completion
-        setShowFilterPopup(false)
-    }
-
-    fun resetFilters() {
-        _filteredCategory = "All"
-        _filteredPriority = "All"
-        _filteredStatus = 2
-        setShowFilterPopup(false)
-    }
-
-    // display and hide popups
 
     fun setShowFilterPopup(show: Boolean) {
         if (!show) {
