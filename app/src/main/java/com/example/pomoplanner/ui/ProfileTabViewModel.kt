@@ -26,10 +26,6 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
     val interactedProfile: Profile?
         get() = _interactedProfile
 
-    private var _selectedProfile by mutableStateOf<Profile?>(null)
-    val selectedProfile: Profile?
-        get() = _selectedProfile
-
     private var _addProfileErrorMessage by mutableStateOf("")
     val addProfileErrorMessage: String
         get() = _addProfileErrorMessage
@@ -58,11 +54,6 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
 
     fun getProfiles() {
         _profiles = dbHelper.getProfiles()
-    }
-
-    fun getSelectedProfile() {
-        _selectedProfile = dbHelper.getSelectedProfile()
-        tasksTab.isDisabled = _selectedProfile!!.profileId == -1
     }
 
     // add data to model
@@ -105,19 +96,6 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    // update data in model
-
-    fun swapSelectedProfile(profile: Profile) {
-        if(selectedProfile != null) {
-            _selectedProfile?.profileIsSelected = false
-            dbHelper.updateProfile(selectedProfile!!)
-        }
-        profile.profileIsSelected = true
-        dbHelper.updateProfile(profile)
-        getProfiles()
-        getSelectedProfile()
-    }
-
     // delete data from model
 
     fun deleteProfile(profile: Profile, password: String) {
@@ -132,43 +110,23 @@ class ProfileTabViewModel(application: Application) : AndroidViewModel(applicati
         if (deleteProfileErrorMessage == "") {
             dbHelper.deleteProfile(profile)
             getProfiles()
-            getSelectedProfile()
             setShowConfirmDeletePopup(false)
         }
     }
 
     // update data in view model
 
-    fun onProfileClicked(profile: Profile) {
-        setInteractedProfile(profile)
-        if (interactedProfile?.profilePassword != null) {
-            setShowPasswordPopup(true)
-        } else {
-            swapSelectedProfile(profile)
-        }
-    }
-
-    fun onLoginClicked(profile: Profile, password: String) {
-        _enterPasswordErrorMessage = ""
-
-        val hashedPassword = hashHelper.getHashCode(password)
-        if (profile.profilePassword != hashedPassword) {
-            _enterPasswordErrorMessage += "Password is Incorrect"
-        }
-
-        if (enterPasswordErrorMessage == "") {
-            swapSelectedProfile(profile)
-            setShowPasswordPopup(false)
-        }
-    }
-
-    fun onDeleteClicked(profile: Profile) {
-        setInteractedProfile(profile)
-        setShowConfirmDeletePopup(true)
-    }
-
     fun setInteractedProfile(profile: Profile) {
         _interactedProfile = profile
+    }
+
+    fun verifyPassword(profilePass: String, loginPass: String): Boolean {
+        val hashedLoginPassword = hashHelper.getHashCode(loginPass)
+        return profilePass == hashedLoginPassword
+    }
+
+    fun setEnterPasswordErrorMessage(errorMessage: String) {
+        _enterPasswordErrorMessage = errorMessage
     }
 
     // display and hide popups
