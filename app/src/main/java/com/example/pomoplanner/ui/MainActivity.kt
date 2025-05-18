@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun PomoPlannerApp(
     mainActivityViewModel: MainActivityViewModel = viewModel(),
+    pomodoroTabViewModel: PomodoroTabViewModel = viewModel(),
 ) {
     mainActivityViewModel.getCurrentTasks()
 
@@ -105,13 +106,10 @@ private fun PomoPlannerApp(
                     BackHandler(true) {
                         // disable back navigating
                     }
-                    PomodoroTab(mainActivityViewModel)
-                }
-                composable(mainActivityViewModel.settingsTab.title) {
-                    BackHandler(true) {
-                        // disable back navigating
-                    }
-                    SettingsTab(mainActivityViewModel)
+                    PomodoroTab(
+                        // mainActivityViewModel,
+                        pomodoroTabViewModel
+                    )
                 }
             }
         }

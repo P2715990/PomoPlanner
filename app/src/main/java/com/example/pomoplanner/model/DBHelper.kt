@@ -63,7 +63,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
     val sqlCreateTSettingStatement: String =
         "CREATE TABLE IF NOT EXISTS " + SettingTableEntry.SettingTableName + " (" +
                 SettingTableEntry.Column_SettingDescription + " TEXT NOT NULL UNIQUE, " +
-                SettingTableEntry.Column_SettingValue + " TEXT NOT NULL)"
+                SettingTableEntry.Column_SettingValue + " INTEGER NOT NULL)"
 
     override fun onCreate(db: SQLiteDatabase?) {
         db?.execSQL(sqlCreateTProfileStatement)
@@ -153,6 +153,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         return success
     }
 
+    /*
     fun getTask(taskId: Int): Task {
         val db: SQLiteDatabase = this.readableDatabase
         val sqlStatement =
@@ -178,6 +179,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
             return Task(-1, -1, "", "", false, null, "")
         }
     }
+     */
 
     fun getTasks(profileId: Int, date: String, category: String, priority: String, status: Int): List<Task> {
         val db: SQLiteDatabase = this.readableDatabase
@@ -281,6 +283,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         return success
     }
 
+    /*
     fun getProfile(profileId: Int): Profile {
         val db: SQLiteDatabase = this.readableDatabase
         val sqlStatement =
@@ -303,6 +306,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
             return Profile(-1, "", "", false)
         }
     }
+     */
 
     fun getProfile(profileUsername: String): Profile {
         val db: SQLiteDatabase = this.readableDatabase
@@ -380,7 +384,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         val cv = ContentValues()
 
         cv.put(SettingTableEntry.Column_SettingDescription, "Pomodoro Timer Duration (Seconds)")
-        cv.put(SettingTableEntry.Column_SettingValue, "1500")
+        cv.put(SettingTableEntry.Column_SettingValue, 1500)
 
         db?.insert(
             SettingTableEntry.SettingTableName,
@@ -390,7 +394,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
 
         cv.clear()
         cv.put(SettingTableEntry.Column_SettingDescription, "Short Break Timer Duration (Seconds)")
-        cv.put(SettingTableEntry.Column_SettingValue, "300")
+        cv.put(SettingTableEntry.Column_SettingValue, 300)
 
         db?.insert(
             SettingTableEntry.SettingTableName,
@@ -400,7 +404,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
 
         cv.clear()
         cv.put(SettingTableEntry.Column_SettingDescription, "Long Break Timer Duration (Seconds)")
-        cv.put(SettingTableEntry.Column_SettingValue, "900")
+        cv.put(SettingTableEntry.Column_SettingValue, 900)
 
         db?.insert(
             SettingTableEntry.SettingTableName,
@@ -410,7 +414,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
 
         cv.clear()
         cv.put(SettingTableEntry.Column_SettingDescription, "Long Break Interval")
-        cv.put(SettingTableEntry.Column_SettingValue, "4")
+        cv.put(SettingTableEntry.Column_SettingValue, 4)
 
         db?.insert(
             SettingTableEntry.SettingTableName,
@@ -436,7 +440,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
 
         val cursor: Cursor = db.rawQuery(sqlStatement, null)
         if (cursor.moveToFirst()) {
-            val result = cursor.getString(1).toInt()
+            val result = cursor.getInt(1)
 
             db.close()
             cursor.close()
@@ -448,7 +452,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         }
     }
 
-    fun updateSetting(settingDescription: String, settingValue: String): Boolean {
+    fun updateSetting(settingDescription: String, settingValue: Int): Boolean {
         val db: SQLiteDatabase = this.writableDatabase
         val cv = ContentValues()
 
@@ -457,7 +461,7 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         val success = db.update(
             SettingTableEntry.SettingTableName,
             cv,
-            "${SettingTableEntry.Column_SettingDescription} = $settingDescription",
+            "${SettingTableEntry.Column_SettingDescription} LIKE '$settingDescription'",
             null
         ) == 1
         db.close()
