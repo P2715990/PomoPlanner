@@ -379,8 +379,8 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
     fun assignDefaultSettings(db: SQLiteDatabase?) {
         val cv = ContentValues()
 
-        cv.put(SettingTableEntry.Column_SettingDescription, "Pomodoro Timer Duration (Minutes)")
-        cv.put(SettingTableEntry.Column_SettingValue, "25")
+        cv.put(SettingTableEntry.Column_SettingDescription, "Pomodoro Timer Duration (Seconds)")
+        cv.put(SettingTableEntry.Column_SettingValue, "1500")
 
         db?.insert(
             SettingTableEntry.SettingTableName,
@@ -389,8 +389,8 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         )
 
         cv.clear()
-        cv.put(SettingTableEntry.Column_SettingDescription, "Short Break Timer Duration (Minutes)")
-        cv.put(SettingTableEntry.Column_SettingValue, "5")
+        cv.put(SettingTableEntry.Column_SettingDescription, "Short Break Timer Duration (Seconds)")
+        cv.put(SettingTableEntry.Column_SettingValue, "300")
 
         db?.insert(
             SettingTableEntry.SettingTableName,
@@ -399,8 +399,8 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
         )
 
         cv.clear()
-        cv.put(SettingTableEntry.Column_SettingDescription, "Long Break Timer Duration (Minutes)")
-        cv.put(SettingTableEntry.Column_SettingValue, "15")
+        cv.put(SettingTableEntry.Column_SettingDescription, "Long Break Timer Duration (Seconds)")
+        cv.put(SettingTableEntry.Column_SettingValue, "900")
 
         db?.insert(
             SettingTableEntry.SettingTableName,
@@ -427,6 +427,25 @@ class DBHelper(context: Context) : SQLiteOpenHelper(context, DataBaseName, null,
 
         assignDefaultSettings(db)
         db.close()
+    }
+
+    fun getSetting(settingDescription: String): Int {
+        val db: SQLiteDatabase = this.readableDatabase
+        val sqlStatement =
+            "SELECT * FROM ${SettingTableEntry.SettingTableName} WHERE ${SettingTableEntry.Column_SettingDescription} LIKE '$settingDescription'"
+
+        val cursor: Cursor = db.rawQuery(sqlStatement, null)
+        if (cursor.moveToFirst()) {
+            val result = cursor.getString(1).toInt()
+
+            db.close()
+            cursor.close()
+            return result
+        } else {
+            db.close()
+            cursor.close()
+            return 0
+        }
     }
 
     fun updateSetting(settingDescription: String, settingValue: String): Boolean {
