@@ -27,12 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.surfaceColorAtElevation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -84,39 +79,94 @@ fun PomodoroTab(
         NavHost(
             modifier = Modifier.padding(innerPadding),
             navController = navController,
-            startDestination = "pomodoro"
+            startDestination = mainActivityViewModel.timerState
         ) {
-            composable("pomodoro") {
+            composable("Pomodoro") {
                 PomoTimerView(
                     navController,
                     { title ->
                         pomodoroTabViewModel.setPomodoroTitle(title)
                     },
-                    pomodoroTabViewModel.pomodoroTimerDuration,
+                    mainActivityViewModel.timerTotal,
+                    { seconds ->
+                        mainActivityViewModel.setTimerTotal(seconds)
+                    },
+                    { mainActivityViewModel.resetTimerRemaining() },
                     pomodoroTabViewModel.longBreakInterval,
-                    pomodoroTabViewModel.currentInterval,
-                    { pomodoroTabViewModel.incrementCurrentInterval() },
-                    { pomodoroTabViewModel.resetCurrentInterval() }
-                )
-            }
-            composable("short break") {
-                BreakTimerView(
-                    navController,
-                    { title ->
-                        pomodoroTabViewModel.setPomodoroTitle(title)
+                    mainActivityViewModel.currentInterval,
+                    { mainActivityViewModel.incrementCurrentInterval() },
+                    { mainActivityViewModel.resetCurrentInterval() },
+                    mainActivityViewModel.timerRemaining,
+                    { mainActivityViewModel.decrementTimerRemaining() },
+                    mainActivityViewModel.timerProgress,
+                    { progress ->
+                        mainActivityViewModel.setTimerProgress(progress)
+                    },
+                    mainActivityViewModel.timerIsRunning,
+                    { isRunning ->
+                        mainActivityViewModel.setTimerIsRunning(isRunning)
+                    },
+                    { state ->
+                        mainActivityViewModel.updateTimerState(state)
                     },
                     pomodoroTabViewModel.shortBreakTimerDuration,
-                    "Short Break"
+                    pomodoroTabViewModel.longBreakTimerDuration
                 )
             }
-            composable("long break") {
+            composable("Short Break") {
                 BreakTimerView(
                     navController,
                     { title ->
                         pomodoroTabViewModel.setPomodoroTitle(title)
                     },
-                    pomodoroTabViewModel.longBreakTimerDuration,
-                    "Long Break"
+                    mainActivityViewModel.timerTotal,
+                    { seconds ->
+                        mainActivityViewModel.setTimerTotal(seconds)
+                    },
+                    { mainActivityViewModel.resetTimerRemaining() },
+                    mainActivityViewModel.timerRemaining,
+                    { mainActivityViewModel.decrementTimerRemaining() },
+                    mainActivityViewModel.timerProgress,
+                    { progress ->
+                        mainActivityViewModel.setTimerProgress(progress)
+                    },
+                    mainActivityViewModel.timerIsRunning,
+                    { isRunning ->
+                        mainActivityViewModel.setTimerIsRunning(isRunning)
+                    },
+                    mainActivityViewModel.timerState,
+                    { state ->
+                        mainActivityViewModel.updateTimerState(state)
+                    },
+                    pomodoroTabViewModel.pomodoroTimerDuration
+                )
+            }
+            composable("Long Break") {
+                BreakTimerView(
+                    navController,
+                    { title ->
+                        pomodoroTabViewModel.setPomodoroTitle(title)
+                    },
+                    mainActivityViewModel.timerTotal,
+                    { seconds ->
+                        mainActivityViewModel.setTimerTotal(seconds)
+                    },
+                    { mainActivityViewModel.resetTimerRemaining() },
+                    mainActivityViewModel.timerRemaining,
+                    { mainActivityViewModel.decrementTimerRemaining() },
+                    mainActivityViewModel.timerProgress,
+                    { progress ->
+                        mainActivityViewModel.setTimerProgress(progress)
+                    },
+                    mainActivityViewModel.timerIsRunning,
+                    { isRunning ->
+                        mainActivityViewModel.setTimerIsRunning(isRunning)
+                    },
+                    mainActivityViewModel.timerState,
+                    { state ->
+                        mainActivityViewModel.updateTimerState(state)
+                    },
+                    pomodoroTabViewModel.pomodoroTimerDuration
                 )
             }
         }
@@ -129,16 +179,22 @@ fun PomoTimerView(
     navController: NavController,
     onActive: (String) -> Unit,
     timerDuration: Int,
+    setTimerTotal: (Int) -> Unit,
+    resetRemainingTime: () -> Unit,
     longBreakInterval: Int,
     currentInterval: Int,
     incrementCurrentInterval: () -> Unit,
     resetCurrentInterval: () -> Unit,
+    remainingTime: Int,
+    decrementRemainingTime: () -> Unit,
+    progress: Float,
+    setProgress: (Float) -> Unit,
+    isRunning: Boolean,
+    setIsRunning: (Boolean) -> Unit,
+    updateTimerState: (String) -> Unit,
+    shortBreakDuration: Int,
+    longBreakDuration: Int,
 ) {
-    var isRunning by remember { mutableStateOf(false) }
-    var totalTime by remember { mutableIntStateOf(timerDuration) }
-    var remainingTime by remember { mutableIntStateOf(totalTime) }
-    var progress by remember { mutableFloatStateOf(1f) }
-
     val context = LocalContext.current
     val mediaPlayer = remember {
         MediaPlayer.create(context, R.raw.timer_alarm)
@@ -147,27 +203,31 @@ fun PomoTimerView(
     onActive("Pomodoro - Time to Work!")
 
     LaunchedEffect(isRunning) {
-        if (isRunning) {
-            while (remainingTime > 0 && isRunning) {
-                progress = remainingTime.toFloat() / totalTime.toFloat()
-                delay(1000)
-                remainingTime -= 1
+        while (remainingTime > 0 && isRunning) {
+            setProgress(remainingTime.toFloat() / timerDuration.toFloat())
+            delay(1000)
+            decrementRemainingTime()
+        }
+        if (remainingTime <= 0) {
+            setIsRunning(false)
+            // notification manager show pomo done
+            CoroutineScope(Dispatchers.Main).launch {
+                mediaPlayer.start()
+                delay(3000)
+                mediaPlayer.stop()
             }
-            if (remainingTime <= 0) {
-                isRunning = false
-                // notification manager show pomo done
-                CoroutineScope(Dispatchers.Main).launch {
-                    mediaPlayer.start()
-                    delay(3000)
-                    mediaPlayer.stop()
-                }
-                incrementCurrentInterval()
-                if (currentInterval == longBreakInterval) {
-                    resetCurrentInterval()
-                    navController.navigate("Long Break")
-                } else {
-                    navController.navigate("Short Break")
-                }
+            incrementCurrentInterval()
+            if (currentInterval >= longBreakInterval) {
+                resetCurrentInterval()
+                updateTimerState("Long Break")
+                setTimerTotal(longBreakDuration)
+                resetRemainingTime()
+                navController.navigate("Long Break")
+            } else {
+                updateTimerState("Short Break")
+                setTimerTotal(shortBreakDuration)
+                resetRemainingTime()
+                navController.navigate("Short Break")
             }
         }
     }
@@ -189,26 +249,10 @@ fun PomoTimerView(
                 .width(200.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .padding(top = 24.dp),
-            onClick = {isRunning = !isRunning}
+            onClick = { setIsRunning(!isRunning) }
         ) {
             Text(
                 text = if (isRunning) "Pause" else "Start",
-                fontSize = 24.sp
-            )
-        }
-
-        Button(
-            modifier = Modifier
-                .width(200.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .padding(top = 24.dp),
-            onClick = {
-                remainingTime = 0
-                if(!isRunning) isRunning = true
-            }
-        ) {
-            Text(
-                text = "Skip Cycle",
                 fontSize = 24.sp
             )
         }
@@ -220,37 +264,43 @@ fun BreakTimerView(
     navController: NavController,
     onActive: (String) -> Unit,
     timerDuration: Int,
-    breakType: String,
+    setTimerTotal: (Int) -> Unit,
+    resetRemainingTime: () -> Unit,
+    remainingTime: Int,
+    decrementRemainingTime: () -> Unit,
+    progress: Float,
+    setProgress: (Float) -> Unit,
+    isRunning: Boolean,
+    setIsRunning: (Boolean) -> Unit,
+    timerState: String,
+    updateTimerState: (String) -> Unit,
+    pomodoroDuration: Int,
 ) {
-    var isRunning by remember { mutableStateOf(false) }
-    var totalTime by remember { mutableIntStateOf(timerDuration) }
-    var remainingTime by remember { mutableIntStateOf(totalTime) }
-    var progress by remember { mutableFloatStateOf(1f) }
-
     val context = LocalContext.current
     val mediaPlayer = remember {
         MediaPlayer.create(context, R.raw.timer_alarm)
     }
 
-    onActive("$breakType - Take a Rest!")
+    onActive("$timerState - Take a Rest!")
 
     LaunchedEffect(isRunning) {
-        if (isRunning) {
-            while (remainingTime > 0 && isRunning) {
-                progress = remainingTime.toFloat() / totalTime.toFloat()
-                delay(1000)
-                remainingTime -= 1
+        while (remainingTime > 0 && isRunning) {
+            setProgress(remainingTime.toFloat() / timerDuration.toFloat())
+            delay(1000)
+            decrementRemainingTime()
+        }
+        if (remainingTime <= 0) {
+            setIsRunning(false)
+            // notification manager show break done
+            CoroutineScope(Dispatchers.Main).launch {
+                mediaPlayer.start()
+                delay(3000)
+                mediaPlayer.stop()
             }
-            if (remainingTime <= 0) {
-                isRunning = false
-                // notification manager show break done
-                CoroutineScope(Dispatchers.Main).launch {
-                    mediaPlayer.start()
-                    delay(3000)
-                    mediaPlayer.stop()
-                }
-                navController.navigate("pomodoro")
-            }
+            updateTimerState("Pomodoro")
+            setTimerTotal(pomodoroDuration)
+            resetRemainingTime()
+            navController.navigate("Pomodoro")
         }
     }
 
@@ -271,26 +321,10 @@ fun BreakTimerView(
                 .width(200.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .padding(top = 24.dp),
-            onClick = {isRunning = !isRunning}
+            onClick = { setIsRunning(!isRunning) }
         ) {
             Text(
                 text = if (isRunning) "Pause" else "Start",
-                fontSize = 24.sp
-            )
-        }
-
-        Button(
-            modifier = Modifier
-                .width(200.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .padding(top = 24.dp),
-            onClick = {
-                remainingTime = 0
-                if(!isRunning) isRunning = true
-            }
-        ) {
-            Text(
-                text = "Skip Cycle",
                 fontSize = 24.sp
             )
         }
@@ -300,7 +334,7 @@ fun BreakTimerView(
 @Composable
 fun TimerWidget(
     progress: Float,
-    remainingTime: Int
+    remainingTime: Int,
 ) {
     Row(
         modifier = Modifier

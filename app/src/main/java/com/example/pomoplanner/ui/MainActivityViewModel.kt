@@ -12,6 +12,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -58,6 +59,31 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     private var _filteredStatus by mutableIntStateOf(2)
     val filteredStatus: Int
         get() = _filteredStatus
+
+    // timer properties
+    private var _timerState by mutableStateOf("Pomodoro")
+    val timerState: String
+        get() = _timerState
+
+    private var _timerTotal by mutableIntStateOf(dbHelper.getSetting("Pomodoro Timer Duration (Seconds)"))
+    val timerTotal: Int
+        get() = _timerTotal
+
+    private var _timerRemaining by mutableIntStateOf(dbHelper.getSetting("Pomodoro Timer Duration (Seconds)"))
+    val timerRemaining: Int
+        get() = _timerRemaining
+
+    private var _timerProgress by mutableFloatStateOf(1f)
+    val timerProgress: Float
+        get() = _timerProgress
+
+    private var _timerIsRunning by mutableStateOf(false)
+    val timerIsRunning: Boolean
+        get() = _timerIsRunning
+
+    private var _currentInterval by mutableIntStateOf(1)
+    val currentInterval: Int
+        get() = _currentInterval
 
     class TabBarItem(
         val title: String,
@@ -121,7 +147,7 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun swapSelectedProfile(profile: Profile) {
-        if(selectedProfile != null) {
+        if (selectedProfile != null) {
             _selectedProfile?.profileIsSelected = false
             dbHelper.updateProfile(selectedProfile!!)
         }
@@ -161,5 +187,37 @@ class MainActivityViewModel(application: Application) : AndroidViewModel(applica
             _selectedDate = formattedNewDate
             getCurrentTasks()
         }
+    }
+
+    fun updateTimerState(state: String) {
+        _timerState = state
+    }
+
+    fun setTimerTotal(seconds: Int) {
+        _timerTotal = seconds
+    }
+
+    fun resetTimerRemaining() {
+        _timerRemaining = timerTotal
+    }
+
+    fun decrementTimerRemaining() {
+        _timerRemaining -= 1
+    }
+
+    fun setTimerProgress(progress: Float) {
+        _timerProgress = progress
+    }
+
+    fun setTimerIsRunning(isRunning: Boolean) {
+        _timerIsRunning = isRunning
+    }
+
+    fun incrementCurrentInterval() {
+        _currentInterval += 1
+    }
+
+    fun resetCurrentInterval() {
+        _currentInterval = 1
     }
 }

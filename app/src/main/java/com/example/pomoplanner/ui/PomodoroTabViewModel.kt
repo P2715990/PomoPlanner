@@ -30,10 +30,6 @@ class PomodoroTabViewModel(application: Application) : AndroidViewModel(applicat
     val longBreakInterval: Int
         get() = _longBreakInterval
 
-    private var _currentInterval by mutableIntStateOf(1)
-    val currentInterval: Int
-        get() = _currentInterval
-
     private var _pomodoroTitle by mutableStateOf("Pomodoro - Time to Work!")
     val pomodoroTitle: String
         get() = _pomodoroTitle
@@ -43,14 +39,6 @@ class PomodoroTabViewModel(application: Application) : AndroidViewModel(applicat
         _shortBreakTimerDuration = dbHelper.getSetting("Short Break Timer Duration (Seconds)")
         _longBreakTimerDuration = dbHelper.getSetting("Long Break Timer Duration (Seconds)")
         _longBreakInterval = dbHelper.getSetting("Long Break Interval")
-    }
-
-    fun incrementCurrentInterval() {
-        _currentInterval += 1
-    }
-
-    fun resetCurrentInterval() {
-        _currentInterval = 1
     }
 
     fun setPomodoroTitle(title: String) {
