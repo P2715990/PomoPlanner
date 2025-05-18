@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -77,7 +76,13 @@ private fun PomoPlannerApp(
         color = MaterialTheme.colorScheme.background
     ) {
         Scaffold(
-            bottomBar = { TabView(mainActivityViewModel.tabBarItems, navController) }
+            bottomBar = {
+                TabView(
+                    mainActivityViewModel.tabBarItems
+                ) { location ->
+                    navController.navigate(location)
+                }
+            }
         ) { innerPadding ->
             NavHost(
                 modifier = Modifier.padding(innerPadding),
@@ -115,7 +120,10 @@ private fun PomoPlannerApp(
 
 // generates navigation bar and handles active navigation tab and switching
 @Composable
-private fun TabView(tabBarItems: List<TabBarItem>, navController: NavController) {
+private fun TabView(
+    tabBarItems: List<TabBarItem>,
+    onClick: (String) -> Unit
+) {
     var selectedTabIndex by rememberSaveable {
         mutableIntStateOf(0)
     }
@@ -136,7 +144,7 @@ private fun TabView(tabBarItems: List<TabBarItem>, navController: NavController)
                 onClick = {
                     if (!tabBarItem.isDisabled) {
                         selectedTabIndex = index
-                        navController.navigate(tabBarItem.title)
+                        onClick(tabBarItem.title)
                     }
                 },
                 interactionSource = if (tabBarItem.isDisabled) {
