@@ -104,6 +104,10 @@ class PomodoroTabViewModel(application: Application) : AndroidViewModel(applicat
         _timerRemaining -= 1
     }
 
+    fun skipTimer() {
+        _timerRemaining = 0
+    }
+
     fun setTimerProgress(progress: Float) {
         _timerProgress = progress
     }
@@ -137,12 +141,30 @@ class PomodoroTabViewModel(application: Application) : AndroidViewModel(applicat
         longBreakTimerDuration: Int,
         longBreakInterval: Int
     ) {
-        dbHelper.updateSetting("Pomodoro Timer Duration (Seconds)", pomodoroTimerDuration)
-        dbHelper.updateSetting("Short Break Timer Duration (Seconds)", shortBreakTimerDuration)
-        dbHelper.updateSetting("Long Break Timer Duration (Seconds)", longBreakTimerDuration)
-        dbHelper.updateSetting("Long Break Interval", longBreakInterval)
-        setShowSettingsPopup(false)
-        getSettings()
-        resetTimer()
+        _settingsErrorMessage = ""
+
+        if (pomodoroTimerDuration <= 0 || shortBreakTimerDuration <= 0 || longBreakTimerDuration <= 0) {
+            _settingsErrorMessage += "Timer Duration Cannot Be Shorter Than 1 Second"
+        }
+
+        if (pomodoroTimerDuration > 3600 || shortBreakTimerDuration > 3600 || longBreakTimerDuration > 3600) {
+            if (settingsErrorMessage != "") _settingsErrorMessage += "\n\n"
+            _settingsErrorMessage += "Timer Duration Cannot Be Longer Than 3600 Seconds (60 Minutes)"
+        }
+
+        if (longBreakInterval <= 0 || longBreakInterval > 10) {
+            if (settingsErrorMessage != "") _settingsErrorMessage += "\n\n"
+            _settingsErrorMessage += "Long Break Interval Should Be Between 1-10"
+        }
+
+        if (settingsErrorMessage == "") {
+            dbHelper.updateSetting("Pomodoro Timer Duration (Seconds)", pomodoroTimerDuration)
+            dbHelper.updateSetting("Short Break Timer Duration (Seconds)", shortBreakTimerDuration)
+            dbHelper.updateSetting("Long Break Timer Duration (Seconds)", longBreakTimerDuration)
+            dbHelper.updateSetting("Long Break Interval", longBreakInterval)
+            setShowSettingsPopup(false)
+            getSettings()
+            resetTimer()
+        }
     }
 }
