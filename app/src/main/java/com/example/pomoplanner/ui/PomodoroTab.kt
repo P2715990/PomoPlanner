@@ -124,7 +124,8 @@ fun PomodoroTab(
                         pomodoroTabViewModel.updateTimerState(state)
                     },
                     pomodoroTabViewModel.shortBreakTimerDuration,
-                    pomodoroTabViewModel.longBreakTimerDuration
+                    pomodoroTabViewModel.longBreakTimerDuration,
+                    { pomodoroTabViewModel.skipTimer() }
                 )
             }
             composable("Short Break") {
@@ -152,7 +153,8 @@ fun PomodoroTab(
                     { state ->
                         pomodoroTabViewModel.updateTimerState(state)
                     },
-                    pomodoroTabViewModel.pomodoroTimerDuration
+                    pomodoroTabViewModel.pomodoroTimerDuration,
+                    { pomodoroTabViewModel.skipTimer() }
                 )
             }
             composable("Long Break") {
@@ -180,7 +182,8 @@ fun PomodoroTab(
                     { state ->
                         pomodoroTabViewModel.updateTimerState(state)
                     },
-                    pomodoroTabViewModel.pomodoroTimerDuration
+                    pomodoroTabViewModel.pomodoroTimerDuration,
+                    { pomodoroTabViewModel.skipTimer() }
                 )
             }
         }
@@ -251,6 +254,7 @@ fun PomoTimerView(
     updateTimerState: (String) -> Unit,
     shortBreakDuration: Int,
     longBreakDuration: Int,
+    skipTimer: () -> Unit
 ) {
     val context = LocalContext.current
     val mediaPlayer = remember {
@@ -267,7 +271,6 @@ fun PomoTimerView(
         }
         if (remainingTime <= 0) {
             setIsRunning(false)
-            // notification manager show pomo done
             CoroutineScope(Dispatchers.Main).launch {
                 mediaPlayer.start()
                 delay(3000)
@@ -315,6 +318,19 @@ fun PomoTimerView(
                 fontSize = 24.sp
             )
         }
+
+        Button(
+            modifier = Modifier
+                .width(200.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .padding(top = 24.dp),
+            onClick = { skipTimer() }
+        ) {
+            Text(
+                text = "Skip",
+                fontSize = 24.sp
+            )
+        }
     }
 }
 
@@ -334,6 +350,7 @@ fun BreakTimerView(
     timerState: String,
     updateTimerState: (String) -> Unit,
     pomodoroDuration: Int,
+    skipTimer: () -> Unit
 ) {
     val context = LocalContext.current
     val mediaPlayer = remember {
@@ -350,7 +367,6 @@ fun BreakTimerView(
         }
         if (remainingTime <= 0) {
             setIsRunning(false)
-            // notification manager show break done
             CoroutineScope(Dispatchers.Main).launch {
                 mediaPlayer.start()
                 delay(3000)
@@ -385,6 +401,19 @@ fun BreakTimerView(
         ) {
             Text(
                 text = if (isRunning) "Pause" else "Start",
+                fontSize = 24.sp
+            )
+        }
+
+        Button(
+            modifier = Modifier
+                .width(200.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .padding(top = 24.dp),
+            onClick = { skipTimer() }
+        ) {
+            Text(
+                text = "Skip",
                 fontSize = 24.sp
             )
         }
